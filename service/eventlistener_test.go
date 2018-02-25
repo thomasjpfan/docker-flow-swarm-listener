@@ -29,7 +29,7 @@ func TestEventListenerUnitTestSuite(t *testing.T) {
 }
 
 func (s *EventListenerTestSuite) Test_ListenForEvents_IncorrectSocket() {
-	eventListener := NewEventListener("unix:///this/socket/does/not/exist")
+	eventListener := NewEventListener("unix:///this/socket/does/not/exist", "service")
 	_, errs := eventListener.ListenForEvents()
 
 	err := s.GetChannelError(errs)
@@ -37,7 +37,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_IncorrectSocket() {
 }
 
 func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
-	eventListener := NewEventListener("unix:///var/run/docker.sock")
+	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -53,7 +53,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
 
 	s.Equal("create", event.Action)
 
-	serviceID := event.ServiceID
+	serviceID := event.ID
 	s.Require().NotEmpty(serviceID)
 
 	eventServices, err := service.GetServicesFromID(serviceID)
@@ -69,7 +69,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
 
 func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo() {
 
-	eventListener := NewEventListener("unix:///var/run/docker.sock")
+	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -91,7 +91,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo
 
 	s.Equal("create", event.Action)
 
-	serviceID := event.ServiceID
+	serviceID := event.ID
 	s.Require().NotEmpty(serviceID)
 
 	eventServices, err := service.GetServicesFromID(serviceID)
@@ -105,7 +105,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo
 	s.NotNil(eventService.NodeInfo)
 }
 func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
-	eventListener := NewEventListener("unix:///var/run/docker.sock")
+	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -120,7 +120,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
 	s.Require().NoError(err)
 	s.Equal("create", event.Action)
 
-	serviceID := event.ServiceID
+	serviceID := event.ID
 	s.Require().NotEmpty(serviceID)
 
 	eventServices, err := service.GetServicesFromID(serviceID)
@@ -135,7 +135,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
 	s.Require().NoError(err)
 	s.Equal("remove", event.Action)
 
-	serviceID = event.ServiceID
+	serviceID = event.ID
 	s.NotEmpty(serviceID)
 	s.Equal(eventService.ID, serviceID)
 }

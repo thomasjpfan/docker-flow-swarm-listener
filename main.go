@@ -9,7 +9,7 @@ func main() {
 	logPrintf("Starting Docker Flow: Swarm Listener")
 	s := service.NewServiceFromEnv()
 	n := service.NewNotificationFromEnv()
-	el := service.NewEventListenerFromEnv()
+	el := service.NewEventListenerFromEnv("service")
 	serve := NewServe(s, n)
 	go serve.Run()
 
@@ -43,7 +43,7 @@ func main() {
 		select {
 		case event := <-events:
 			if event.Action == "create" || event.Action == "update" {
-				eventServices, err := s.GetServicesFromID(event.ServiceID)
+				eventServices, err := s.GetServicesFromID(event.ID)
 				if err != nil {
 					metrics.RecordError("GetServicesFromID")
 				}
@@ -61,7 +61,7 @@ func main() {
 				}
 
 			} else if event.Action == "remove" {
-				err = n.ServicesRemove(&[]string{event.ServiceID}, args.Retry, args.RetryInterval)
+				err = n.ServicesRemove(&[]string{event.ID}, args.Retry, args.RetryInterval)
 				metrics.RecordService(len(service.CachedServices))
 				if err != nil {
 					metrics.RecordError("ServicesRemove")
