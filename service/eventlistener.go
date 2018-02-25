@@ -39,14 +39,19 @@ type EventListener struct {
 	eventType string
 }
 
-// NewEventListener returns a new instance of the `EventListener` structure
-func NewEventListener(host, eventType string) *EventListener {
+// NewEventListener returns `EventListener` for an eventAdmitter
+func NewEventListener(eventAdmit eventAdmitter, eventType string) *EventListener {
+	return &EventListener{eventAdmit, eventType}
+}
+
+// NewEventListenerForDocker creates a `EventListener` with a docker host
+func NewEventListenerForDocker(host, eventType string) *EventListener {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
 	dc, err := client.NewClient(host, dockerApiVersion, nil, defaultHeaders)
 	if err != nil {
 		logPrintf(err.Error())
 	}
-	return &EventListener{dockerClient{dc}, eventType}
+	return NewEventListener(dockerClient{dc}, eventType)
 }
 
 // NewEventListenerFromEnv returns a new instance of the `EventListener` structure using environment variable `DF_DOCKER_HOST` for the host
@@ -55,7 +60,7 @@ func NewEventListenerFromEnv(eventType string) *EventListener {
 	if len(os.Getenv("DF_DOCKER_HOST")) > 0 {
 		host = os.Getenv("DF_DOCKER_HOST")
 	}
-	return NewEventListener(host, eventType)
+	return NewEventListenerForDocker(host, eventType)
 }
 
 // ListenForEvents returns a stream of Events

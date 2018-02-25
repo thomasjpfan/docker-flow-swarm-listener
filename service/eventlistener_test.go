@@ -29,7 +29,7 @@ func TestEventListenerUnitTestSuite(t *testing.T) {
 }
 
 func (s *EventListenerTestSuite) Test_ListenForEvents_IncorrectSocket() {
-	eventListener := NewEventListener("unix:///this/socket/does/not/exist", "service")
+	eventListener := NewEventListenerForDocker("unix:///this/socket/does/not/exist", "service")
 	_, errs := eventListener.ListenForEvents()
 
 	err := s.GetChannelError(errs)
@@ -37,7 +37,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_IncorrectSocket() {
 }
 
 func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
-	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
+	eventListener := NewEventListenerForDocker("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -69,7 +69,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
 
 func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo() {
 
-	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
+	eventListener := NewEventListenerForDocker("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -105,7 +105,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo
 	s.NotNil(eventService.NodeInfo)
 }
 func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
-	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
+	eventListener := NewEventListenerForDocker("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
