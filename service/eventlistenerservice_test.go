@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type EventListenerTestSuite struct {
+type EventListenerServiceTestSuite struct {
 	suite.Suite
 	serviceName string
 }
 
-func TestEventListenerUnitTestSuite(t *testing.T) {
-	s := new(EventListenerTestSuite)
+func TestEventListenerServiceUnitTestSuite(t *testing.T) {
+	s := new(EventListenerServiceTestSuite)
 	s.serviceName = "my-service"
 	logPrintfOrig := logPrintf
 	defer func() {
@@ -28,16 +28,16 @@ func TestEventListenerUnitTestSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
-func (s *EventListenerTestSuite) Test_ListenForEvents_IncorrectSocket() {
-	eventListener := NewEventListenerForDocker("unix:///this/socket/does/not/exist", "service")
+func (s *EventListenerServiceTestSuite) Test_ListenForEvents_IncorrectSocket() {
+	eventListener := NewEventListener("unix:///this/socket/does/not/exist", "service")
 	_, errs := eventListener.ListenForEvents()
 
-	err := s.GetChannelError(errs)
+	err := getChannelError(errs)
 	s.Error(err)
 }
 
-func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
-	eventListener := NewEventListenerForDocker("unix:///var/run/docker.sock", "service")
+func (s *EventListenerServiceTestSuite) Test_ListenForEvents_CreateService() {
+	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -47,7 +47,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
 	}()
 	createTestService("util-el-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, "", "")
 
-	event, err := s.GetChannelEvent(events, errs)
+	event, err := getChannelEvent(events, errs)
 
 	s.Require().NoError(err)
 
@@ -67,9 +67,9 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService() {
 	s.Nil(eventService.NodeInfo)
 }
 
-func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo() {
+func (s *EventListenerServiceTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo() {
 
-	eventListener := NewEventListenerForDocker("unix:///var/run/docker.sock", "service")
+	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -85,7 +85,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo
 		[]string{"com.df.notify=true", "com.df.scrapeNetwork=util-el-network", "com.df.distribute=true"},
 		"", "util-el-network")
 
-	event, err := s.GetChannelEvent(events, errs)
+	event, err := getChannelEvent(events, errs)
 
 	s.Require().NoError(err)
 
@@ -104,8 +104,8 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_CreateService_WithNodeInfo
 	s.Equal("util-el-1", eventService.Spec.Name)
 	s.NotNil(eventService.NodeInfo)
 }
-func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
-	eventListener := NewEventListenerForDocker("unix:///var/run/docker.sock", "service")
+func (s *EventListenerServiceTestSuite) Test_ListenForEvents_RemoveService() {
+	eventListener := NewEventListener("unix:///var/run/docker.sock", "service")
 	service := NewService("unix:///var/run/docker.sock")
 
 	events, errs := eventListener.ListenForEvents()
@@ -116,7 +116,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
 	createTestService("util-el-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, "", "")
 
 	// Check create event action
-	event, err := s.GetChannelEvent(events, errs)
+	event, err := getChannelEvent(events, errs)
 	s.Require().NoError(err)
 	s.Equal("create", event.Action)
 
@@ -130,7 +130,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
 	eventService := (*eventServices)[0]
 
 	removeTestService("util-el-1")
-	event, err = s.GetChannelEvent(events, errs)
+	event, err = getChannelEvent(events, errs)
 
 	s.Require().NoError(err)
 	s.Equal("remove", event.Action)
@@ -140,7 +140,7 @@ func (s *EventListenerTestSuite) Test_ListenForEvents_RemoveService() {
 	s.Equal(eventService.ID, serviceID)
 }
 
-func (s *EventListenerTestSuite) GetChannelError(errs <-chan error) error {
+func getChannelError(errs <-chan error) error {
 	timeOut := time.NewTimer(time.Second * 5).C
 	for {
 		select {
@@ -152,7 +152,7 @@ func (s *EventListenerTestSuite) GetChannelError(errs <-chan error) error {
 	}
 }
 
-func (s *EventListenerTestSuite) GetChannelEvent(events <-chan Event, errs <-chan error) (*Event, error) {
+func getChannelEvent(events <-chan Event, errs <-chan error) (*Event, error) {
 	timeOut := time.NewTimer(time.Second * 5).C
 	for {
 		select {
