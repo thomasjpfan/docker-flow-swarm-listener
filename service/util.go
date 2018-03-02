@@ -9,7 +9,6 @@ import (
 )
 
 var logPrintf = log.Printf
-var dockerApiVersion string = "v1.22"
 
 func getSenderAddressesFromEnvVars(catchAllType, senderType, altSenderType string) (createServiceAddr, removeServiceAddr []string) {
 	catchAllVarName := fmt.Sprintf("DF_%s_URL", strings.ToUpper(catchAllType))

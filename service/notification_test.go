@@ -170,6 +170,7 @@ func (s *NotificationTestSuite) Test_ServicesCreate_SendsRequests() {
 		}
 	}))
 	defer func() { httpSrv.Close() }()
+
 	url1 := fmt.Sprintf("%s/v1/docker-flow-proxy/reconfigure", httpSrv.URL)
 	url2 := fmt.Sprintf("%s/something/else", httpSrv.URL)
 

@@ -15,6 +15,21 @@ type Event struct {
 	ID     string
 }
 
+// EventListening object listens for events
+type EventListening interface {
+	ListenForEvents() (<-chan Event, <-chan error)
+}
+
+// EventType represents a type of event
+type EventType string
+
+const (
+	// EventTypeService SERVICE
+	EventTypeService EventType = "service"
+	// EventTypeNode NODe
+	EventTypeNode EventType = "node"
+)
+
 // EventListener listens for docker service events
 type EventListener struct {
 	*client.Client
