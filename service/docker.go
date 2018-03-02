@@ -1,24 +1,16 @@
 package service
 
 import (
-	"context"
 	"os"
 
-	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
 var dockerApiVersion string = "v1.36"
 
-// NodeInspector is able to inspect a swarm node
-type NodeInspector interface {
-	NodeInspect(ctx context.Context, nodeID string) (swarm.Node, error)
-}
-
-// DockerClient wraps the docker client and implements the interfaces:
-// `NodeInspector`
+// DockerClient wraps the docker client
 type DockerClient struct {
-	*client.Client
+	Client *client.Client
 }
 
 // NewDockerClientFromEnv returns a `DockerClient` struct using environment variable
@@ -30,5 +22,5 @@ func NewDockerClientFromEnv() (DockerClient, error) {
 	}
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
 	dc, err := client.NewClient(host, dockerApiVersion, nil, defaultHeaders)
-	return DockerClient{dc}, err
+	return DockerClient{Client: dc}, err
 }

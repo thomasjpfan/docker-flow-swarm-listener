@@ -12,6 +12,12 @@ import (
 	"../metrics"
 )
 
+// EventServiceNotifier sends notifications for service events
+type EventServiceNotifier interface {
+	ServiceCreate(services *[]SwarmService, retries, interval int) error
+	ServicesRemove(services *[]SwarmService, retries, interval int) error
+}
+
 // Notification defines the structure with exported functions
 type Notification struct {
 	CreateServiceAddr []string

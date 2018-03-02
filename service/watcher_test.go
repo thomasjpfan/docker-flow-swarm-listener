@@ -15,7 +15,7 @@ type NodeInspectorMock struct {
 	mock.Mock
 }
 
-type NodeEventNotifingMock struct {
+type EventNodeNotifingMock struct {
 	mock.Mock
 }
 
@@ -23,14 +23,14 @@ type WatcherTestSuite struct {
 	suite.Suite
 	elMock  EventListeningMock
 	niMock  NodeInspectorMock
-	nenMock NodeEventNotifingMock
+	nenMock EventNodeNotifingMock
 }
 
 func TestWatcherUnitTestSuite(t *testing.T) {
 	s := new(WatcherTestSuite)
 	s.elMock = EventListeningMock{}
 	s.niMock = NodeInspectorMock{}
-	s.nenMock = NodeEventNotifingMock{}
+	s.nenMock = EventNodeNotifingMock{}
 
 	suite.Run(t, s)
 }

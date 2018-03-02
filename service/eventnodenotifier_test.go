@@ -14,22 +14,22 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type NodeEventNotifierTestSuite struct {
+type EventNodeNotifierTestSuite struct {
 	suite.Suite
 }
 
-func TestNodeEventNotifierUnitTestSuite(t *testing.T) {
+func TestEventNodeNotifierUnitTestSuite(t *testing.T) {
 	logPrintfOrig := logPrintf
 	defer func() {
 		logPrintf = logPrintfOrig
 	}()
 	logPrintf = func(format string, v ...interface{}) {}
 
-	s := new(NodeEventNotifierTestSuite)
+	s := new(EventNodeNotifierTestSuite)
 	suite.Run(t, s)
 }
 
-func (s *NodeEventNotifierTestSuite) Test_NewNotificationFromEnv_ParseENV() {
+func (s *EventNodeNotifierTestSuite) Test_NewNotificationFromEnv_ParseENV() {
 	defer func() {
 		os.Unsetenv("DF_NOTIFY_CREATE_NODE_URL")
 		os.Unsetenv("DF_NOTIFY_UPDATE_NODE_URL")
@@ -37,7 +37,7 @@ func (s *NodeEventNotifierTestSuite) Test_NewNotificationFromEnv_ParseENV() {
 	os.Setenv("DF_NOTIFY_CREATE_NODE_URL", "create_url1,create_url2")
 	os.Setenv("DF_NOTIFY_UPDATE_NODE_URL", "update_url1")
 
-	n := NewNodeEventNotifierFromEnv()
+	n := NewEventNodeNotifierFromEnv()
 	s.Require().NotNil(n)
 
 	s.Require().Len(n.CreateAddrs, 2)
@@ -48,9 +48,16 @@ func (s *NodeEventNotifierTestSuite) Test_NewNotificationFromEnv_ParseENV() {
 	s.Equal("update_url1", n.UpdateAddrs[0])
 
 	s.Len(n.RemoveAddrs, 0)
+
+	s.True(n.HasListeners())
 }
 
-func (s *NodeEventNotifierTestSuite) Test_CreateNodes_SendRequests() {
+func (s *EventNodeNotifierTestSuite) Test_NewNotification_NoListeners() {
+	n := NewEventNodeNotifierFromEnv()
+	s.False(n.HasListeners())
+}
+
+func (s *EventNodeNotifierTestSuite) Test_CreateNodes_SendRequests() {
 	queryChan1 := make(chan url.Values, 1)
 	queryChan2 := make(chan url.Values, 1)
 
@@ -76,19 +83,21 @@ func (s *NodeEventNotifierTestSuite) Test_CreateNodes_SendRequests() {
 		"com.df.cows":   "grass",
 		"com.df2.bears": "fight",
 	}
-	node1 := s.getNode(nodeHN1, "managerNodeID", swarm.NodeRoleManager, label1)
+	node1 := getNode(nodeHN1, "managerNodeID", swarm.NodeRoleManager, label1)
 
 	nodeHN2 := "workerHostname"
 	label2 := map[string]string{
 		"com.df.birds":  "fly",
 		"com.df.zebras": "run",
 	}
-	node2 := s.getNode(nodeHN2, "workerNodeID", swarm.NodeRoleWorker, label2)
+	node2 := getNode(nodeHN2, "workerNodeID", swarm.NodeRoleWorker, label2)
 
 	url1 := fmt.Sprintf("%s/v1/docker-flow-proxy/reconfigure", httpSrv.URL)
-	n := newNodeEventNotifier(
+	n := newEventNodeNotifier(
 		[]string{url1}, []string{}, []string{})
-	n.NotifyCreateNodes([]swarm.Node{node1, node2}, 50, 5)
+
+	err := n.NotifyCreateNodes([]swarm.Node{node1, node2}, 50, 5)
+	s.Require().NoError(err)
 
 	timeoutChan := time.NewTimer(5 * time.Second).C
 
@@ -112,17 +121,14 @@ func (s *NodeEventNotifierTestSuite) Test_CreateNodes_SendRequests() {
 		}
 	}
 
-	s.Equal(nodeHN1, query1.Get("hostname"))
-	s.Equal("grass", query1.Get("cows"))
-	s.Equal("", query1.Get("bears"))
+	params1 := GetNodeParameters(node1)
+	params2 := GetNodeParameters(node2)
 
-	s.Equal(nodeHN2, query2.Get("hostname"))
-	s.Equal("fly", query1.Get("birds"))
-	s.Equal("run", query1.Get("zebras"))
-
+	s.EqualURLValues(params1, query1)
+	s.EqualURLValues(params2, query2)
 }
 
-func (s *NodeEventNotifierTestSuite) Test_CreateNode_SendRequests_TwoURLs() {
+func (s *EventNodeNotifierTestSuite) Test_CreateNode_SendRequests_TwoURLs() {
 
 	queryChan1 := make(chan url.Values, 1)
 	queryChan2 := make(chan url.Values, 1)
@@ -154,11 +160,12 @@ func (s *NodeEventNotifierTestSuite) Test_CreateNode_SendRequests_TwoURLs() {
 		"com.df2.areducks": "real",
 	}
 	hostname := "managerHostname"
-	managerNode := s.getNode(hostname, "managerNodeID", swarm.NodeRoleManager, labels)
+	managerNode := getNode(hostname, "managerNodeID", swarm.NodeRoleManager, labels)
 
-	n := newNodeEventNotifier(
+	n := newEventNodeNotifier(
 		[]string{url1, url2}, []string{}, []string{})
-	n.NotifyCreateNode(managerNode, 50, 5)
+	err := n.NotifyCreateNode(managerNode, 50, 5)
+	s.Require().NoError(err)
 
 	timeoutChan := time.NewTimer(5 * time.Second).C
 
@@ -181,18 +188,49 @@ func (s *NodeEventNotifierTestSuite) Test_CreateNode_SendRequests_TwoURLs() {
 			return
 		}
 	}
-	s.Equal(hostname, query1.Get("hostname"))
-	s.Equal("true", query1.Get("manager"))
-	s.Equal("world", query1.Get("hello"))
-	s.Equal("", query1.Get("areducks"))
 
-	s.Equal(hostname, query2.Get("hostname"))
-	s.Equal("true", query2.Get("manager"))
-	s.Equal("world", query2.Get("hello"))
-	s.Equal("", query2.Get("areducks"))
+	params := GetNodeParameters(managerNode)
+
+	s.EqualURLValues(params, query1)
+	s.EqualURLValues(params, query2)
 }
 
-func (s *NodeEventNotifierTestSuite) Test_UpdateNode_SendRequests_OneURL() {
+func (s *EventNodeNotifierTestSuite) Test_CreateNode_RetriesRequests() {
+
+	count := 0
+	done := make(chan struct{})
+	httpSrv := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		count++
+		if count == 3 {
+			done <- struct{}{}
+		}
+	}))
+
+	node := getNode(
+		"hostname", "node123", swarm.NodeRoleManager,
+		map[string]string{})
+	n := newEventNodeNotifier([]string{httpSrv.URL}, []string{}, []string{})
+
+	err := n.NotifyCreateNode(node, 3, 1)
+	s.Require().NoError(err)
+
+	timerChan := time.NewTicker(5 * time.Second).C
+
+	for {
+		select {
+		case <-done:
+			s.True(true, "Retried three times")
+		case <-timerChan:
+			s.Fail("Timeout")
+			return
+		}
+	}
+
+}
+
+func (s *EventNodeNotifierTestSuite) Test_UpdateNode_SendRequests_OneURL() {
 
 	queryChan := make(chan url.Values, 1)
 	httpSrv := httptest.NewServer(http.HandlerFunc(func(
@@ -210,24 +248,24 @@ func (s *NodeEventNotifierTestSuite) Test_UpdateNode_SendRequests_OneURL() {
 		"com.df.hello": "world",
 	}
 	hostname := "workerHostname"
-	workerNode := s.getNode(hostname, "workerNodeID", swarm.NodeRoleWorker, labels)
+	workerNode := getNode(hostname, "workerNodeID", swarm.NodeRoleWorker, labels)
 
 	url1 := fmt.Sprintf("%s/v1/docker-flow-proxy/reconfigure", httpSrv.URL)
-	n := newNodeEventNotifier(
+	n := newEventNodeNotifier(
 		[]string{}, []string{url1}, []string{})
-	n.NotifyUpdateNode(workerNode, 50, 5)
+	err := n.NotifyUpdateNode(workerNode, 50, 5)
+	s.Require().NoError(err)
 
 	timeoutChan := time.NewTimer(5 * time.Second).C
 
+	var query url.Values
 	for {
 		if queryChan == nil {
 			break
 		}
 		select {
 		case q := <-queryChan:
-			s.Equal(hostname, q.Get("hostname"))
-			s.Equal("false", q.Get("manager"))
-			s.Equal("world", q.Get("hello"))
+			query = q
 			queryChan = nil
 		case <-timeoutChan:
 			s.Fail("Timeout")
@@ -235,9 +273,12 @@ func (s *NodeEventNotifierTestSuite) Test_UpdateNode_SendRequests_OneURL() {
 		}
 	}
 
+	params := GetNodeParameters(workerNode)
+
+	s.EqualURLValues(params, query)
 }
 
-func (s *NodeEventNotifierTestSuite) Test_RemoveNode_LogsError_WhenHTTPStatusIsNot200() {
+func (s *EventNodeNotifierTestSuite) Test_RemoveNode_LogsError_WhenHTTPStatusIsNot200() {
 
 	// Mock logger
 	logPrintfOrig := logPrintf
@@ -254,12 +295,13 @@ func (s *NodeEventNotifierTestSuite) Test_RemoveNode_LogsError_WhenHTTPStatusIsN
 	}))
 
 	hostname := "workerHostname"
-	workerNode := s.getNode(
+	workerNode := getNode(
 		hostname, "workerNodeID", swarm.NodeRoleWorker, map[string]string{})
 
-	n := newNodeEventNotifier(
+	n := newEventNodeNotifier(
 		[]string{}, []string{}, []string{httpSrv.URL})
-	n.NotifyRemoveNode(workerNode, 50, 5)
+	err := n.NotifyRemoveNode(workerNode, 50, 5)
+	s.Require().NoError(err)
 
 	timeoutChan := time.NewTimer(5 * time.Second).C
 
@@ -277,26 +319,12 @@ func (s *NodeEventNotifierTestSuite) Test_RemoveNode_LogsError_WhenHTTPStatusIsN
 	}
 
 	s.True(strings.HasPrefix(msg, "ERROR"))
-
 }
-
-func (s *NodeEventNotifierTestSuite) getNode(
-	hostname string, nodeID string,
-	role swarm.NodeRole, labels map[string]string) swarm.Node {
-
-	annotations := swarm.Annotations{
-		Labels: labels,
-	}
-	nodeSpec := swarm.NodeSpec{
-		Annotations: annotations,
-		Role:        role,
-	}
-	nodeDescription := swarm.NodeDescription{
-		Hostname: hostname,
-	}
-	return swarm.Node{
-		ID:          nodeID,
-		Description: nodeDescription,
-		Spec:        nodeSpec,
+func (s *EventNodeNotifierTestSuite) EqualURLValues(expected, actual url.Values) {
+	for k := range expected {
+		expV, expA := expected[k], actual[k]
+		s.Len(expV, 1)
+		s.Len(expA, 1)
+		s.Equal(expected.Get(k), actual.Get(k))
 	}
 }
