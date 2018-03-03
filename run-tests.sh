@@ -1,1 +1,1 @@
-go test --cover ./... --run UnitTest
+go test --cover ./... --run TestEventListenerNodeUnitTestSuite -testify.m Test_ListenForEvents_NodeRemove

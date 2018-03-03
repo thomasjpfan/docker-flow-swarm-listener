@@ -42,7 +42,7 @@ func (s *ServiceTestSuite) Test_GetServices_ReturnsServices() {
 	services, _ := service.GetServices()
 	actual := *services
 
-	s.Equal(2, len(actual))
+	s.Require().Equal(2, len(actual))
 	s.Equal("/demo", actual[0].Spec.Labels["com.df.servicePath"])
 	s.Equal("true", actual[0].Spec.Labels["com.df.distribute"])
 }

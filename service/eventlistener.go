@@ -1,12 +1,12 @@
 package service
 
 import (
+	"context"
 	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
-	"golang.org/x/net/context"
 )
 
 // Event contains information about docker events
@@ -19,16 +19,6 @@ type Event struct {
 type EventListening interface {
 	ListenForEvents() (<-chan Event, <-chan error)
 }
-
-// EventType represents a type of event
-type EventType string
-
-const (
-	// EventTypeService SERVICE
-	EventTypeService EventType = "service"
-	// EventTypeNode NODe
-	EventTypeNode EventType = "node"
-)
 
 // EventListener listens for docker service events
 type EventListener struct {

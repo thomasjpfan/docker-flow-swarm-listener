@@ -7,30 +7,26 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type EventListeningMock struct {
-	mock.Mock
-}
-
-type NodeInspectorMock struct {
-	mock.Mock
-}
-
 type EventNodeNotifingMock struct {
 	mock.Mock
 }
 
 type WatcherTestSuite struct {
 	suite.Suite
-	elMock  EventListeningMock
-	niMock  NodeInspectorMock
+	elMock  eventListeningMock
+	niMock  nodeInspectorMock
 	nenMock EventNodeNotifingMock
 }
 
 func TestWatcherUnitTestSuite(t *testing.T) {
 	s := new(WatcherTestSuite)
-	s.elMock = EventListeningMock{}
-	s.niMock = NodeInspectorMock{}
+	s.elMock = eventListeningMock{}
+	s.niMock = nodeInspectorMock{}
 	s.nenMock = EventNodeNotifingMock{}
 
 	suite.Run(t, s)
+}
+
+func (s *WatcherTestSuite) Test_WatchServices() {
+
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-var dockerApiVersion string = "v1.36"
+var dockerApiVersion string = "v1.35"
 
 // DockerClient wraps the docker client
 type DockerClient struct {
