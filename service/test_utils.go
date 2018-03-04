@@ -1,4 +1,3 @@
-// Provides functions to be used with tests
 package service
 
 import (
