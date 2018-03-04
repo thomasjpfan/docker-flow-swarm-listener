@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
@@ -28,6 +26,8 @@ func TestEventListenerNodeUnitTestSuite(t *testing.T) {
 
 func (s *EventListenerNodeTestSuite) SetupSuite() {
 	s.Logger = log.New(os.Stdout, "", 0)
+
+	// Assumes running test with docker-compose.yml
 	s.NetworkName = "dockerflowswarmlistener_dfsl_network"
 	s.Node0 = "node0"
 
@@ -36,9 +36,7 @@ func (s *EventListenerNodeTestSuite) SetupSuite() {
 
 	s.Node0JoinToken = getWorkerToken(s.Node0)
 
-	host := fmt.Sprintf("tcp://%s:2375", s.Node0)
-	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	client, err := client.NewClient(host, dockerApiVersion, nil, defaultHeaders)
+	client, err := newTestNodeDockerClient(s.Node0)
 	s.Require().NoError(err)
 	s.DockerClient = client
 
@@ -146,59 +144,4 @@ func (s *EventListenerNodeTestSuite) waitForNodeEvent(events <-chan NodeEvent) (
 			return nil, fmt.Errorf("Timeout")
 		}
 	}
-}
-
-func createNode(name string, network string) {
-	exec.Command("docker", "container", "run", "-d", "--rm",
-		"--privileged", "--network", network, "--name", name,
-		"--hostname", name, "docker:17.12.1-ce-dind").Output()
-}
-
-func destroyNode(name string) {
-	exec.Command("docker", "container", "stop", name).Output()
-}
-
-func getWorkerToken(nodeName string) string {
-	args := []string{"swarm", "join-token", "worker", "-q"}
-	token, _ := runDockerCommandOnNode(args, nodeName)
-	return strings.TrimRight(string(token), "\n")
-}
-func initSwarm(nodeName string) {
-	args := []string{"swarm", "init"}
-	runDockerCommandOnNode(args, nodeName)
-}
-
-func joinSwarm(nodeName, rootNodeName, token string) {
-	rootHost := fmt.Sprintf("%s:2377", rootNodeName)
-	args := []string{"swarm", "join", "--token", token, rootHost}
-	runDockerCommandOnNode(args, nodeName)
-}
-
-func getNodeID(nodeName, rootNodeName string) (string, error) {
-	args := []string{"node", "inspect", nodeName, "-f", "{{ .ID }}"}
-	ID, err := runDockerCommandOnNode(args, rootNodeName)
-	return strings.TrimRight(string(ID), "\n"), err
-}
-
-func removeNodeFromSwarm(nodeName, rootNodeName string) {
-	args := []string{"node", "rm", "--force", nodeName}
-	runDockerCommandOnNode(args, rootNodeName)
-}
-
-func addLabelToNode(nodeName, label, rootNodeName string) {
-	args := []string{"node", "update", "--label-add", label, nodeName}
-	runDockerCommandOnNode(args, nodeName)
-}
-
-func removeLabelFromNode(nodeName, label, rootNodeName string) {
-	args := []string{"node", "update", "--label-rm", label, nodeName}
-	runDockerCommandOnNode(args, nodeName)
-}
-
-func runDockerCommandOnNode(args []string, nodeName string) (string, error) {
-	host := fmt.Sprintf("tcp://%s:2375", nodeName)
-	dockerCmd := []string{"-H", host}
-	fullCmd := append(dockerCmd, args...)
-	output, err := exec.Command("docker", fullCmd...).Output()
-	return string(output), err
 }
