@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -27,7 +26,7 @@ func (s *ServicEventListenerTestSuite) SetupSuite() {
 	s.ServiceName = "my-service"
 	client, err := NewDockerClientFromEnv()
 	s.Require().NoError(err)
-	s.DockerClient = client.Client
+	s.DockerClient = client
 	s.Logger = log.New(os.Stdout, "", 0)
 }
 
@@ -38,13 +37,14 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_CreateService
 	eventChan := make(chan ServicEvent)
 	snl.ListenForServiceEvents(eventChan)
 
-	createTestService("util-1", []string{}, "", "")
+	createTestService("util-1", []string{}, false, "", "")
 	defer func() {
 		removeTestService("util-1")
 	}()
 
 	time.Sleep(time.Second)
-	utilID := getServiceID("util-1")
+	utilID, err := getServiceID("util-1")
+	s.Require().NoError(err)
 
 	event, err := s.waitForServiceEvent(eventChan)
 	s.Require().NoError(err)
@@ -56,13 +56,14 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_CreateService
 func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_UpdateService() {
 	snl := NewServicEventListener(s.DockerClient, s.Logger)
 
-	createTestService("util-1", []string{}, "", "")
+	createTestService("util-1", []string{}, false, "", "")
 	defer func() {
 		removeTestService("util-1")
 	}()
 
 	time.Sleep(time.Second)
-	utilID := getServiceID("util-1")
+	utilID, err := getServiceID("util-1")
+	s.Require().NoError(err)
 
 	// Listen for events
 	eventChan := make(chan ServicEvent)
@@ -90,13 +91,14 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_UpdateService
 func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_RemoveService() {
 	snl := NewServicEventListener(s.DockerClient, s.Logger)
 
-	createTestService("util-1", []string{}, "", "")
+	createTestService("util-1", []string{}, false, "", "")
 	defer func() {
 		removeTestService("util-1")
 	}()
 
 	time.Sleep(time.Second)
-	utilID := getServiceID("util-1")
+	utilID, err := getServiceID("util-1")
+	s.Require().NoError(err)
 
 	// Listen for events
 	eventChan := make(chan ServicEvent)
@@ -122,19 +124,4 @@ func (s *ServicEventListenerTestSuite) waitForServiceEvent(events <-chan ServicE
 			return nil, fmt.Errorf("Timeout")
 		}
 	}
-}
-
-func addLabelToService(name, label string) {
-	args := []string{"service", "update", "--label-add", label, name}
-	runDockerCommandOnSocket(args)
-}
-
-func removeLabelFromService(name, label string) {
-	args := []string{"service", "update", "--label-rm", label, name}
-	runDockerCommandOnSocket(args)
-}
-
-func runDockerCommandOnSocket(args []string) (string, error) {
-	output, err := exec.Command("docker", args...).Output()
-	return string(output), err
 }

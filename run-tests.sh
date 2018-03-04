@@ -1,1 +1,1 @@
-go test --cover ./... --run TestNodeInspectorUnitTestSuite
+go test --cover ./... --run TestServicClientUnitTestSuite

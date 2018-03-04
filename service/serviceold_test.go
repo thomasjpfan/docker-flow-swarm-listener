@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
@@ -60,9 +59,9 @@ func (s *ServiceTestSuite) Test_GetServices_ReturnsError_WhenServiceListFails() 
 func (s *ServiceTestSuite) Test_GetServicesFromID() {
 	service := NewService("unix:///var/run/docker.sock")
 
-	expUtil1ID := getServiceID("util-1")
-	expUtil2ID := getServiceID("util-2")
-	expUtil3ID := getServiceID("util-3")
+	expUtil1ID, _ := getServiceID("util-1")
+	expUtil2ID, _ := getServiceID("util-2")
+	expUtil3ID, _ := getServiceID("util-3")
 
 	util1Services, err := service.GetServicesFromID(expUtil1ID)
 	s.Require().NoError(err)
@@ -84,7 +83,7 @@ func (s *ServiceTestSuite) Test_GetServicesFromID() {
 func (s *ServiceTestSuite) Test_GetServicesFromID_ReturnsError() {
 	service := NewService("unix:///this/socket/does/not/exist")
 
-	expUtil1ID := getServiceID("util-1")
+	expUtil1ID, _ := getServiceID("util-1")
 
 	_, err := service.GetServicesFromID(expUtil1ID)
 	s.Error(err)
@@ -114,8 +113,8 @@ func (s *ServiceTestSuite) Test_GetNewServices_ReturnsOnlyNewServices() {
 }
 
 func (s *ServiceTestSuite) Test_GetNewServices_AddsServices() {
-	expUtil1ID := getServiceID("util-1")
-	expUtil3ID := getServiceID("util-3")
+	expUtil1ID, _ := getServiceID("util-1")
+	expUtil3ID, _ := getServiceID("util-3")
 
 	service := NewService("unix:///var/run/docker.sock")
 	services, _ := service.GetServices()
@@ -129,7 +128,7 @@ func (s *ServiceTestSuite) Test_GetNewServices_AddsServices() {
 
 func (s *ServiceTestSuite) Test_GetNewServices_DoesNotAddServices_WhenReplicasAreZero() {
 	service := NewService("unix:///var/run/docker.sock")
-	expUtil1ID := getServiceID("util-1")
+	expUtil1ID, _ := getServiceID("util-1")
 	services, _ := service.GetServices()
 	for _, s := range *services {
 		if s.Spec.Name == "util-1" {
@@ -145,7 +144,7 @@ func (s *ServiceTestSuite) Test_GetNewServices_DoesNotAddServices_WhenReplicasAr
 
 func (s *ServiceTestSuite) Test_GetNewServices_AddsServices_WhenModeIsGlobal() {
 	service := NewService("unix:///var/run/docker.sock")
-	expUtil3ID := getServiceID("util-3")
+	expUtil3ID, _ := getServiceID("util-3")
 	services, _ := service.GetServices()
 
 	service.GetNewServices(services)
@@ -463,30 +462,10 @@ func (s *ServiceTestSuite) Test_NewServiceFromEnv_SetsHostToSocket_WhenEnvIsNotP
 // Util
 
 func createTestServices() {
-	createTestNetwork("util-network")
-	createTestService("util-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, "", "util-network")
-	createTestService("util-2", []string{}, "", "util-network")
-	createTestService("util-3", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, "global", "util-network")
-}
-
-func createTestNetwork(name string) {
-	args := []string{"network", "create", "-d", "overlay", name}
-	exec.Command("docker", args...).Output()
-}
-
-func createTestService(name string, labels []string, mode string, network string) {
-	args := []string{"service", "create", "--name", name}
-	for _, v := range labels {
-		args = append(args, "-l", v)
-	}
-	if len(mode) > 0 {
-		args = append(args, "--mode", "global")
-	}
-	if len(network) > 0 {
-		args = append(args, "--network", network)
-	}
-	args = append(args, "alpine", "sleep", "1000000000")
-	exec.Command("docker", args...).Output()
+	createTestOverlayNetwork("util-network")
+	createTestService("util-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, false, "", "util-network")
+	createTestService("util-2", []string{}, false, "", "util-network")
+	createTestService("util-3", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, true, "", "util-network")
 }
 
 func removeTestServices() {
@@ -494,17 +473,4 @@ func removeTestServices() {
 	removeTestService("util-2")
 	removeTestService("util-3")
 	removeTestNetwork("util-network")
-}
-
-func removeTestService(name string) {
-	exec.Command("docker", "service", "rm", name).Output()
-}
-
-func removeTestNetwork(name string) {
-	exec.Command("docker", "network", "rm", name).Output()
-}
-
-func getServiceID(name string) string {
-	output, _ := exec.Command("docker", "service", "inspect", name, "-f", "{{ .ID }}").Output()
-	return strings.TrimRight(string(output), "\n")
 }

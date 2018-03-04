@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
+// Node utils
 func getNode(
 	hostname string, nodeID string,
 	role swarm.NodeRole, labels map[string]string) swarm.Node {
@@ -87,5 +88,65 @@ func runDockerCommandOnNode(args []string, nodeName string) (string, error) {
 	dockerCmd := []string{"-H", host}
 	fullCmd := append(dockerCmd, args...)
 	output, err := exec.Command("docker", fullCmd...).Output()
+	return string(output), err
+}
+
+// Service Utils
+
+func createTestOverlayNetwork(name string) {
+	args := []string{"network", "create", "-d", "overlay", name}
+	runDockerCommandOnSocket(args)
+}
+
+func removeTestNetwork(name string) {
+	args := []string{"network", "create", "rm", name}
+	runDockerCommandOnSocket(args)
+}
+
+func getServiceID(name string) (string, error) {
+	args := []string{"service", "inspect", name, "-f", "{{ .ID }}"}
+	ID, err := runDockerCommandOnSocket(args)
+	return strings.TrimRight(string(ID), "\n"), err
+}
+
+func createTestService(name string, labels []string, global bool, replicas string, network string) {
+	args := []string{"service", "create", "--name", name}
+	for _, v := range labels {
+		args = append(args, "-l", v)
+	}
+	if global {
+		args = append(args, "--mode", "global")
+	} else if len(replicas) > 0 {
+		args = append(args, "--replicas", replicas)
+	}
+	if len(network) > 0 {
+		args = append(args, "--network", network)
+	}
+	args = append(args, "alpine", "sleep", "1000000000")
+	runDockerCommandOnSocket(args)
+}
+
+func replicaTestService(name string, count string) {
+	args := []string{"service", "update", "--replicas", count, name}
+	runDockerCommandOnSocket(args)
+}
+
+func removeTestService(name string) {
+	args := []string{"service", "rm", name}
+	runDockerCommandOnSocket(args)
+}
+
+func addLabelToService(name, label string) {
+	args := []string{"service", "update", "--label-add", label, name}
+	runDockerCommandOnSocket(args)
+}
+
+func removeLabelFromService(name, label string) {
+	args := []string{"service", "update", "--label-rm", label, name}
+	runDockerCommandOnSocket(args)
+}
+
+func runDockerCommandOnSocket(args []string) (string, error) {
+	output, err := exec.Command("docker", args...).Output()
 	return string(output), err
 }

@@ -45,7 +45,7 @@ func (s *EventListenerServiceTestSuite) Test_ListenForEvents_CreateService() {
 	defer func() {
 		removeTestService("util-el-1")
 	}()
-	createTestService("util-el-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, "", "")
+	createTestService("util-el-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, false, "", "")
 
 	event, err := getChannelEvent(events, errs)
 
@@ -80,10 +80,10 @@ func (s *EventListenerServiceTestSuite) Test_ListenForEvents_CreateService_WithN
 		removeTestNetwork("util-el-network")
 	}()
 	os.Setenv("DF_INCLUDE_NODE_IP_INFO", "true")
-	createTestNetwork("util-el-network")
+	createTestOverlayNetwork("util-el-network")
 	createTestService("util-el-1",
 		[]string{"com.df.notify=true", "com.df.scrapeNetwork=util-el-network", "com.df.distribute=true"},
-		"", "util-el-network")
+		false, "", "util-el-network")
 
 	event, err := getChannelEvent(events, errs)
 
@@ -113,7 +113,7 @@ func (s *EventListenerServiceTestSuite) Test_ListenForEvents_RemoveService() {
 	defer func() {
 		removeTestService("util-el-1")
 	}()
-	createTestService("util-el-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, "", "")
+	createTestService("util-el-1", []string{"com.df.notify=true", "com.df.servicePath=/demo", "com.df.distribute=true"}, false, "", "")
 
 	// Check create event action
 	event, err := getChannelEvent(events, errs)

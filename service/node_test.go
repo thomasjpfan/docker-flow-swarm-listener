@@ -10,7 +10,7 @@ import (
 
 type NodeInspectorTestSuite struct {
 	suite.Suite
-	Client DockerClient
+	NClient *NodeClient
 }
 
 func TestNodeInspectorUnitTestSuite(t *testing.T) {
@@ -20,7 +20,7 @@ func TestNodeInspectorUnitTestSuite(t *testing.T) {
 func (s *NodeInspectorTestSuite) SetupSuite() {
 	c, err := newTestNodeDockerClient("node1")
 	s.Require().NoError(err)
-	s.Client = DockerClient{c}
+	s.NClient = NewNodeClient(c)
 
 	// Create swarm of two nodes
 	// Assumes running test with docker-compose.yml
@@ -46,7 +46,7 @@ func (s *NodeInspectorTestSuite) Test_NodeInspect() {
 	nodeID, err := getNodeID("node2", "node1")
 	s.Require().NoError(err)
 
-	node, err := s.Client.NodeInspect(context.Background(), "node2")
+	node, err := s.NClient.NodeInspect("node2")
 	s.Require().NoError(err)
 
 	s.Equal("node2", node.Description.Hostname)
@@ -55,12 +55,12 @@ func (s *NodeInspectorTestSuite) Test_NodeInspect() {
 
 func (s *NodeInspectorTestSuite) Test_NodeInspect_Error() {
 
-	_, err := s.Client.NodeInspect(context.Background(), "node3")
+	_, err := s.NClient.NodeInspect("node3")
 	s.Error(err)
 }
 
 func (s *NodeInspectorTestSuite) Test_NodeList() {
-	nodes, err := s.Client.NodeList(context.Background())
+	nodes, err := s.NClient.NodeList(context.Background())
 	s.Require().NoError(err)
 	s.Len(nodes, 2)
 }
