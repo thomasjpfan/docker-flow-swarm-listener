@@ -13,7 +13,7 @@ import (
 // ServicInspector is able to inspect services
 type ServicInspector interface {
 	ServicInspect(serviceID string, includeNodeIPInfo bool) (*SwarmService, error)
-	ServicList(ctx context.Context, includeNodeIPInfo bool) ([]swarm.Service, error)
+	ServicList(ctx context.Context, includeNodeIPInfo bool) ([]SwarmService, error)
 }
 
 // ServicClient implements `ServicInspector` for docker
@@ -39,15 +39,8 @@ func (c ServicClient) ServicInspect(serviceID string, includeNodeIPInfo bool) (*
 	}
 
 	// Check if service has label
-	splitFilter := strings.SplitN(c.FilterLabel, "=", 2)
-	key, value := splitFilter[0], splitFilter[1]
-	foundLabel := false
-	for k, v := range service.Spec.Labels {
-		if k == key && v == value {
-			foundLabel = true
-		}
-	}
-	if !foundLabel {
+	key := strings.SplitN(c.FilterLabel, "=", 2)[0]
+	if _, ok := service.Spec.Labels[key]; !ok {
 		return nil, nil
 	}
 

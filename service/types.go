@@ -6,6 +6,14 @@ import (
 	"github.com/docker/docker/api/types/swarm"
 )
 
+// SwarmServiceMini is a optimized version of `SwarmService` for caching purposes
+type SwarmServiceMini struct {
+}
+
+// NodeMini is a optimized version of `swarm.Node` for caching purposes
+type NodeMini struct {
+}
+
 // SwarmService defines internal structure with service information
 type SwarmService struct {
 	swarm.Service

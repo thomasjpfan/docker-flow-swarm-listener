@@ -32,10 +32,10 @@ func TestEventNodeNotifierUnitTestSuite(t *testing.T) {
 func (s *EventNodeNotifierTestSuite) Test_NewNotificationFromEnv_ParseENV() {
 	defer func() {
 		os.Unsetenv("DF_NOTIFY_CREATE_NODE_URL")
-		os.Unsetenv("DF_NOTIFY_UPDATE_NODE_URL")
+		os.Unsetenv("DF_NOTIFY_REMOVE_NODE_URL")
 	}()
 	os.Setenv("DF_NOTIFY_CREATE_NODE_URL", "create_url1,create_url2")
-	os.Setenv("DF_NOTIFY_UPDATE_NODE_URL", "update_url1")
+	os.Setenv("DF_NOTIFY_REMOVE_NODE_URL", "remove_url1")
 
 	n := NewEventNodeNotifierFromEnv()
 	s.Require().NotNil(n)
@@ -44,8 +44,8 @@ func (s *EventNodeNotifierTestSuite) Test_NewNotificationFromEnv_ParseENV() {
 	s.Equal("create_url1", n.CreateAddrs[0])
 	s.Equal("create_url2", n.CreateAddrs[1])
 
-	s.Require().Len(n.UpdateAddrs, 1)
-	s.Equal("update_url1", n.UpdateAddrs[0])
+	s.Require().Len(n.RemoveAddrs, 1)
+	s.Equal("remove_url1", n.RemoveAddrs[0])
 
 	s.Len(n.RemoveAddrs, 0)
 
@@ -55,77 +55,6 @@ func (s *EventNodeNotifierTestSuite) Test_NewNotificationFromEnv_ParseENV() {
 func (s *EventNodeNotifierTestSuite) Test_NewNotification_NoListeners() {
 	n := NewEventNodeNotifierFromEnv()
 	s.False(n.HasListeners())
-}
-
-func (s *EventNodeNotifierTestSuite) Test_CreateNodes_SendRequests() {
-	queryChan1 := make(chan url.Values, 1)
-	queryChan2 := make(chan url.Values, 1)
-
-	httpSrv := httptest.NewServer(http.HandlerFunc(func(
-		w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" &&
-			r.URL.Path == "/v1/docker-flow-proxy/reconfigure" {
-			w.WriteHeader(http.StatusOK)
-			w.Header().Set("Content-Type", "application/json")
-
-			if r.URL.Query().Get("hostname") == "managerHostname" {
-				queryChan1 <- r.URL.Query()
-			} else if r.URL.Query().Get("hostname") == "workerNodeID" {
-				queryChan2 <- r.URL.Query()
-			}
-		}
-	}))
-
-	defer httpSrv.Close()
-
-	nodeHN1 := "managerHostname"
-	label1 := map[string]string{
-		"com.df.cows":   "grass",
-		"com.df2.bears": "fight",
-	}
-	node1 := getNode(nodeHN1, "managerNodeID", swarm.NodeRoleManager, label1)
-
-	nodeHN2 := "workerHostname"
-	label2 := map[string]string{
-		"com.df.birds":  "fly",
-		"com.df.zebras": "run",
-	}
-	node2 := getNode(nodeHN2, "workerNodeID", swarm.NodeRoleWorker, label2)
-
-	url1 := fmt.Sprintf("%s/v1/docker-flow-proxy/reconfigure", httpSrv.URL)
-	n := newEventNodeNotifier(
-		[]string{url1}, []string{}, []string{})
-
-	err := n.NotifyCreateNodes([]swarm.Node{node1, node2}, 50, 5)
-	s.Require().NoError(err)
-
-	timeoutChan := time.NewTimer(5 * time.Second).C
-
-	var query1 url.Values
-	var query2 url.Values
-
-	for {
-		if queryChan1 == nil && queryChan2 == nil {
-			break
-		}
-		select {
-		case q := <-queryChan1:
-			query1 = q
-			queryChan1 = nil
-		case q := <-queryChan2:
-			query2 = q
-			queryChan2 = nil
-		case <-timeoutChan:
-			s.Fail("Timeout")
-			return
-		}
-	}
-
-	params1 := GetNodeParameters(node1)
-	params2 := GetNodeParameters(node2)
-
-	s.EqualURLValues(params1, query1)
-	s.EqualURLValues(params2, query2)
 }
 
 func (s *EventNodeNotifierTestSuite) Test_CreateNode_SendRequests_TwoURLs() {
@@ -163,7 +92,7 @@ func (s *EventNodeNotifierTestSuite) Test_CreateNode_SendRequests_TwoURLs() {
 	managerNode := getNode(hostname, "managerNodeID", swarm.NodeRoleManager, labels)
 
 	n := newEventNodeNotifier(
-		[]string{url1, url2}, []string{}, []string{})
+		[]string{url1, url2}, []string{})
 	err := n.NotifyCreateNode(managerNode, 50, 5)
 	s.Require().NoError(err)
 
@@ -211,7 +140,7 @@ func (s *EventNodeNotifierTestSuite) Test_CreateNode_RetriesRequests() {
 	node := getNode(
 		"hostname", "node123", swarm.NodeRoleManager,
 		map[string]string{})
-	n := newEventNodeNotifier([]string{httpSrv.URL}, []string{}, []string{})
+	n := newEventNodeNotifier([]string{httpSrv.URL}, []string{})
 
 	err := n.NotifyCreateNode(node, 3, 1)
 	s.Require().NoError(err)
@@ -252,8 +181,8 @@ func (s *EventNodeNotifierTestSuite) Test_UpdateNode_SendRequests_OneURL() {
 
 	url1 := fmt.Sprintf("%s/v1/docker-flow-proxy/reconfigure", httpSrv.URL)
 	n := newEventNodeNotifier(
-		[]string{}, []string{url1}, []string{})
-	err := n.NotifyUpdateNode(workerNode, 50, 5)
+		[]string{url1}, []string{})
+	err := n.NotifyCreateNode(workerNode, 50, 5)
 	s.Require().NoError(err)
 
 	timeoutChan := time.NewTimer(5 * time.Second).C
@@ -299,7 +228,7 @@ func (s *EventNodeNotifierTestSuite) Test_RemoveNode_LogsError_WhenHTTPStatusIsN
 		hostname, "workerNodeID", swarm.NodeRoleWorker, map[string]string{})
 
 	n := newEventNodeNotifier(
-		[]string{}, []string{}, []string{httpSrv.URL})
+		[]string{}, []string{httpSrv.URL})
 	err := n.NotifyRemoveNode(workerNode, 50, 5)
 	s.Require().NoError(err)
 
