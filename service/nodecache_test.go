@@ -15,7 +15,6 @@ func TestNodeCacheUnitTestSuite(t *testing.T) {
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_NewNode() {
-
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_RemovedNode() {
@@ -50,6 +49,6 @@ func (s *NodeCacheTestSuite) Test_InsertAndCheck_UpdateNode_ChangeAvailability()
 
 }
 
-func (s *NodeCacheTestSuite) Test_InsertAndCheck_UpdateNode_ChangeVersion() {
+func (s *NodeCacheTestSuite) Test_InsertAndCheck_UpdateNode_ChangeIndexVersion() {
 
 }

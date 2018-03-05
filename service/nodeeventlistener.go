@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
@@ -71,6 +72,7 @@ func (s NodeEventListener) ListenForNodeEvents(
 			case err := <-msgErrs:
 				s.log.Printf("%v, Restarting docker event stream", err)
 				metrics.RecordError("ListenForNodeEvents")
+				time.Sleep(time.Second)
 				// Reopen event stream
 				msgStream, msgErrs = s.dockerClient.Events(
 					context.Background(), types.EventsOptions{Filters: filter})

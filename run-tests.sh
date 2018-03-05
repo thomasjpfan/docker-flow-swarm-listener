@@ -1,1 +1,1 @@
-go test --cover ./... --run TestServicClientUnitTestSuite
+go test --cover ./... --run TestNodeCacheUnitTestSuite
