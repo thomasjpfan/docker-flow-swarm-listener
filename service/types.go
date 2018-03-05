@@ -30,6 +30,12 @@ const (
 	EventTypeRemove EventType = "remove"
 )
 
+// Event contains information about docker events
+type Event struct {
+	Type EventType
+	ID   string
+}
+
 // NodeIP defines a node/addr pair
 type NodeIP struct {
 	Name string `json:"name"`

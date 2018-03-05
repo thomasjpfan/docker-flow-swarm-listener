@@ -13,3 +13,7 @@ type NotifyDistributorTestSuite struct {
 func NotifyDistributorUnitTestSuite(t *testing.T) {
 	suite.Run(t, new(NotifyDistributorTestSuite))
 }
+
+func (s *NotifyDistributorTestSuite) Test_NewNotifyDistributorFromEnv() {
+
+}

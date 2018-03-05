@@ -9,15 +9,15 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// Event contains information about docker events
-type Event struct {
+// EventOld contains information about docker events
+type EventOld struct {
 	Action string
 	ID     string
 }
 
 // EventListening object listens for events
 type EventListening interface {
-	ListenForEvents() (<-chan Event, <-chan error)
+	ListenForEvents() (<-chan EventOld, <-chan error)
 }
 
 // EventListener listens for docker service events
@@ -46,9 +46,9 @@ func NewEventListenerFromEnv(eventType string) *EventListener {
 }
 
 // ListenForEvents returns a stream of Events
-func (s *EventListener) ListenForEvents() (<-chan Event, <-chan error) {
+func (s *EventListener) ListenForEvents() (<-chan EventOld, <-chan error) {
 
-	events := make(chan Event)
+	events := make(chan EventOld)
 	errs := make(chan error, 1)
 	started := make(chan struct{})
 
@@ -63,7 +63,7 @@ func (s *EventListener) ListenForEvents() (<-chan Event, <-chan error) {
 		for {
 			select {
 			case msg := <-eventStream:
-				events <- Event{
+				events <- EventOld{
 					Action: msg.Action,
 					ID:     msg.Actor.ID,
 				}

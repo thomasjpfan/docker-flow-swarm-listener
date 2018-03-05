@@ -152,7 +152,7 @@ func getChannelError(errs <-chan error) error {
 	}
 }
 
-func getChannelEvent(events <-chan Event, errs <-chan error) (*Event, error) {
+func getChannelEvent(events <-chan EventOld, errs <-chan error) (*EventOld, error) {
 	timeOut := time.NewTimer(time.Second * 5).C
 	for {
 		select {

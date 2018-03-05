@@ -10,33 +10,33 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// ServicInspector is able to inspect services
-type ServicInspector interface {
-	ServicInspect(serviceID string, includeNodeIPInfo bool) (*SwarmService, error)
-	ServicList(ctx context.Context, includeNodeIPInfo bool) ([]SwarmService, error)
+// SwarmServiceInspector is able to inspect services
+type SwarmServiceInspector interface {
+	SwarmServiceInspect(serviceID string, includeNodeIPInfo bool) (*SwarmService, error)
+	SwarmServiceList(ctx context.Context, includeNodeIPInfo bool) ([]SwarmService, error)
 }
 
-// ServicClient implements `ServicInspector` for docker
-type ServicClient struct {
+// SwarmServiceClient implements `SwarmServiceInspector` for docker
+type SwarmServiceClient struct {
 	DockerClient   *client.Client
 	FilterLabel    string
 	FilterKey      string
 	ScrapeNetLabel string
 }
 
-// NewServicClient creats a `ServicClient`
-func NewServicClient(c *client.Client, filterLabel, scrapNetLabel string) *ServicClient {
+// NewSwarmServiceClient creats a `SwarmServiceClient`
+func NewSwarmServiceClient(c *client.Client, filterLabel, scrapNetLabel string) *SwarmServiceClient {
 	key := strings.SplitN(filterLabel, "=", 2)[0]
-	return &ServicClient{DockerClient: c,
+	return &SwarmServiceClient{DockerClient: c,
 		FilterLabel:    filterLabel,
 		FilterKey:      key,
 		ScrapeNetLabel: scrapNetLabel}
 }
 
-// ServicInspect returns `SwarmService` from its ID
+// SwarmServiceInspect returns `SwarmService` from its ID
 // Returns nil when service doesnt not have the `FilterLabel`
 // When `includeNodeIPInfo` is true, return node info as well
-func (c ServicClient) ServicInspect(serviceID string, includeNodeIPInfo bool) (*SwarmService, error) {
+func (c SwarmServiceClient) SwarmServiceInspect(serviceID string, includeNodeIPInfo bool) (*SwarmService, error) {
 	service, _, err := c.DockerClient.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return nil, err
@@ -54,9 +54,9 @@ func (c ServicClient) ServicInspect(serviceID string, includeNodeIPInfo bool) (*
 	return &ss, nil
 }
 
-// ServicList returns a list of services
+// SwarmServiceList returns a list of services
 // When `includeNodeIPInfo` is true, return node info as well
-func (c ServicClient) ServicList(ctx context.Context, includeNodeIPInfo bool) ([]SwarmService, error) {
+func (c SwarmServiceClient) SwarmServiceList(ctx context.Context, includeNodeIPInfo bool) ([]SwarmService, error) {
 	filter := filters.NewArgs()
 	filter.Add("label", c.FilterLabel)
 	services, err := c.DockerClient.ServiceList(ctx, types.ServiceListOptions{Filters: filter})
@@ -74,7 +74,7 @@ func (c ServicClient) ServicList(ctx context.Context, includeNodeIPInfo bool) ([
 	return swarmServices, nil
 }
 
-func (c ServicClient) getNodeInfo(ss swarm.Service) *NodeIPSet {
+func (c SwarmServiceClient) getNodeInfo(ss swarm.Service) *NodeIPSet {
 
 	nodeInfo := NodeIPSet{}
 	filter := filters.NewArgs()

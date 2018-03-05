@@ -24,3 +24,17 @@ type NotifyEndpoint struct {
 type NotifyDistributing interface {
 	Run(serviceChan <-chan NotificationValue, nodeChan <-chan NotificationValue)
 }
+
+// NotifyDistributor distributes service and node notifications to `NotifyEnpoint`s
+type NotifyDistributor struct {
+	NotifyEndpoints []NotifyEndpoint
+}
+
+func newNotifyDistributor(notifyEndpoint []NotifyEndpoint) *NotifyDistributor {
+	return &NotifyDistributor{NotifyEndpoints: notifyEndpoint}
+}
+
+// NewNotifyDistributorFromEnv creates `NotifyDistributor` from environment variables
+func NewNotifyDistributorFromEnv() *NotifyDistributor {
+	return nil
+}

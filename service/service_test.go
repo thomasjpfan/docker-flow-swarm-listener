@@ -8,23 +8,23 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type ServicClientTestSuite struct {
+type SwarmServiceClientTestSuite struct {
 	suite.Suite
-	SClient *ServicClient
+	SClient *SwarmServiceClient
 	Util1ID string
 	Util2ID string
 	Util3ID string
 	Util4ID string
 }
 
-func TestServicClientUnitTestSuite(t *testing.T) {
-	suite.Run(t, new(ServicClientTestSuite))
+func TestSwarmServiceClientUnitTestSuite(t *testing.T) {
+	suite.Run(t, new(SwarmServiceClientTestSuite))
 }
 
-func (s *ServicClientTestSuite) SetupSuite() {
+func (s *SwarmServiceClientTestSuite) SetupSuite() {
 	c, err := NewDockerClientFromEnv()
 	s.Require().NoError(err)
-	s.SClient = NewServicClient(c, "com.df.notify=true", "com.df.scrapeNetwork")
+	s.SClient = NewSwarmServiceClient(c, "com.df.notify=true", "com.df.scrapeNetwork")
 
 	createTestOverlayNetwork("util-network")
 	createTestService("util-1", []string{"com.df.notify=true", "com.df.scrapeNetwork=util-network"}, false, "", "util-network")
@@ -50,7 +50,7 @@ func (s *ServicClientTestSuite) SetupSuite() {
 	s.Util4ID = ID4
 }
 
-func (s *ServicClientTestSuite) TearDownSuite() {
+func (s *SwarmServiceClientTestSuite) TearDownSuite() {
 	removeTestService("util-1")
 	removeTestService("util-2")
 	removeTestService("util-3")
@@ -58,9 +58,9 @@ func (s *ServicClientTestSuite) TearDownSuite() {
 	removeTestNetwork("util-network")
 }
 
-func (s *ServicClientTestSuite) Test_ServicInspect_NodeInfo_UndefinedScrapeNetwork() {
+func (s *SwarmServiceClientTestSuite) Test_SwarmServiceInspect_NodeInfo_UndefinedScrapeNetwork() {
 
-	util3Service, err := s.SClient.ServicInspect(s.Util3ID, true)
+	util3Service, err := s.SClient.SwarmServiceInspect(s.Util3ID, true)
 	s.Require().NoError(err)
 	s.Require().NotNil(util3Service)
 
@@ -68,16 +68,16 @@ func (s *ServicClientTestSuite) Test_ServicInspect_NodeInfo_UndefinedScrapeNetwo
 	s.Nil(util3Service.NodeInfo)
 }
 
-func (s *ServicClientTestSuite) Test_ServiceList_Filtered() {
+func (s *SwarmServiceClientTestSuite) Test_ServiceList_Filtered() {
 
-	util2Service, err := s.SClient.ServicInspect(s.Util2ID, false)
+	util2Service, err := s.SClient.SwarmServiceInspect(s.Util2ID, false)
 	s.Require().NoError(err)
 	s.Nil(util2Service)
 
 }
 
-func (s *ServicClientTestSuite) Test_ServicInspect_NodeInfo_OneReplica() {
-	util1Service, err := s.SClient.ServicInspect(s.Util1ID, true)
+func (s *SwarmServiceClientTestSuite) Test_SwarmServiceInspect_NodeInfo_OneReplica() {
+	util1Service, err := s.SClient.SwarmServiceInspect(s.Util1ID, true)
 	s.Require().NoError(err)
 	s.Require().NotNil(util1Service)
 
@@ -88,9 +88,9 @@ func (s *ServicClientTestSuite) Test_ServicInspect_NodeInfo_OneReplica() {
 	s.Require().Len(nodeInfo, 1)
 }
 
-func (s *ServicClientTestSuite) Test_ServicInspect_NodeInfo_TwoReplica() {
+func (s *SwarmServiceClientTestSuite) Test_SwarmServiceInspect_NodeInfo_TwoReplica() {
 
-	util4Service, err := s.SClient.ServicInspect(s.Util4ID, true)
+	util4Service, err := s.SClient.SwarmServiceInspect(s.Util4ID, true)
 	s.Require().NoError(err)
 	s.Require().NotNil(util4Service)
 
@@ -101,13 +101,13 @@ func (s *ServicClientTestSuite) Test_ServicInspect_NodeInfo_TwoReplica() {
 	s.Require().Len(nodeInfo, 2)
 }
 
-func (s *ServicClientTestSuite) Test_ServicInspect_IncorrectName() {
-	_, err := s.SClient.ServicInspect("cowsfly", true)
+func (s *SwarmServiceClientTestSuite) Test_SwarmServiceInspect_IncorrectName() {
+	_, err := s.SClient.SwarmServiceInspect("cowsfly", true)
 	s.Error(err)
 }
 
-func (s *ServicClientTestSuite) Test_ServicList_NodeInfo() {
-	services, err := s.SClient.ServicList(context.Background(), true)
+func (s *SwarmServiceClientTestSuite) Test_SwarmServiceList_NodeInfo() {
+	services, err := s.SClient.SwarmServiceList(context.Background(), true)
 	s.Require().NoError(err)
 	s.Len(services, 3)
 
@@ -120,9 +120,9 @@ func (s *ServicClientTestSuite) Test_ServicList_NodeInfo() {
 	}
 }
 
-func (s *ServicClientTestSuite) Test_ServicList_NoNodeInfo() {
+func (s *SwarmServiceClientTestSuite) Test_SwarmServiceList_NoNodeInfo() {
 
-	services, err := s.SClient.ServicList(context.Background(), false)
+	services, err := s.SClient.SwarmServiceList(context.Background(), false)
 	s.Require().NoError(err)
 	s.Len(services, 3)
 
