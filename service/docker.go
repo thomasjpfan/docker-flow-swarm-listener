@@ -6,7 +6,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-var dockerAPIVersion string = "v1.27"
+var dockerAPIVersion = "v1.27"
 
 // NewDockerClientFromEnv returns a `*client.Client` struct using environment variable
 // `DF_DOCKER_HOST` for the host
