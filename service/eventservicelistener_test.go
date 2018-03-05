@@ -11,18 +11,18 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type EventServiceListenerTestSuite struct {
+type SwarmServiceListenerTestSuite struct {
 	suite.Suite
 	ServiceName  string
 	DockerClient *client.Client
 	Logger       *log.Logger
 }
 
-func TestEventServiceListenerTestSuite(t *testing.T) {
-	suite.Run(t, new(EventServiceListenerTestSuite))
+func TestSwarmServiceListenerTestSuite(t *testing.T) {
+	suite.Run(t, new(SwarmServiceListenerTestSuite))
 }
 
-func (s *EventServiceListenerTestSuite) SetupSuite() {
+func (s *SwarmServiceListenerTestSuite) SetupSuite() {
 	s.ServiceName = "my-service"
 	client, err := NewDockerClientFromEnv()
 	s.Require().NoError(err)
@@ -30,11 +30,11 @@ func (s *EventServiceListenerTestSuite) SetupSuite() {
 	s.Logger = log.New(os.Stdout, "", 0)
 }
 
-func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_CreateService() {
-	snl := NewEventServiceListener(s.DockerClient, s.Logger)
+func (s *SwarmServiceListenerTestSuite) Test_ListenForServiceEvents_CreateService() {
+	snl := NewSwarmServiceListener(s.DockerClient, s.Logger)
 
 	// Listen for events
-	eventChan := make(chan EventService)
+	eventChan := make(chan Event)
 	snl.ListenForServiceEvents(eventChan)
 
 	createTestService("util-1", []string{}, false, "", "")
@@ -53,8 +53,8 @@ func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_CreateServic
 	s.Equal(utilID, event.ID)
 }
 
-func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_UpdateService() {
-	snl := NewEventServiceListener(s.DockerClient, s.Logger)
+func (s *SwarmServiceListenerTestSuite) Test_ListenForServiceEvents_UpdateService() {
+	snl := NewSwarmServiceListener(s.DockerClient, s.Logger)
 
 	createTestService("util-1", []string{}, false, "", "")
 	defer func() {
@@ -66,7 +66,7 @@ func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_UpdateServic
 	s.Require().NoError(err)
 
 	// Listen for events
-	eventChan := make(chan EventService)
+	eventChan := make(chan Event)
 	snl.ListenForServiceEvents(eventChan)
 
 	// Update label
@@ -88,8 +88,8 @@ func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_UpdateServic
 	s.Equal(utilID, event.ID)
 }
 
-func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_RemoveService() {
-	snl := NewEventServiceListener(s.DockerClient, s.Logger)
+func (s *SwarmServiceListenerTestSuite) Test_ListenForServiceEvents_RemoveService() {
+	snl := NewSwarmServiceListener(s.DockerClient, s.Logger)
 
 	createTestService("util-1", []string{}, false, "", "")
 	defer func() {
@@ -101,7 +101,7 @@ func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_RemoveServic
 	s.Require().NoError(err)
 
 	// Listen for events
-	eventChan := make(chan EventService)
+	eventChan := make(chan Event)
 	snl.ListenForServiceEvents(eventChan)
 
 	// Remove service
@@ -114,7 +114,7 @@ func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_RemoveServic
 	s.Equal(utilID, event.ID)
 }
 
-func (s *EventServiceListenerTestSuite) waitForServiceEvent(events <-chan EventService) (*EventService, error) {
+func (s *SwarmServiceListenerTestSuite) waitForServiceEvent(events <-chan Event) (*Event, error) {
 	timeOut := time.NewTimer(time.Second * 5).C
 	for {
 		select {

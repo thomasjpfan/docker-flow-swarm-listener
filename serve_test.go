@@ -61,7 +61,7 @@ func (s *ServerTestSuite) Test_Run_ReturnsError_WhenHTTPListenAndServeFails() {
 
 func (s *ServerTestSuite) Test_NotifyServices_ReturnsStatus200() {
 	servicerMock := getServicerMock("")
-	notifMock := NotificationMock{
+	notifMock := NotificationOldMock{
 		ServicesCreateMock: func(services *[]service.SwarmService, retries, interval int) error {
 			return nil
 		},
@@ -85,7 +85,7 @@ func (s *ServerTestSuite) Test_NotifyServices_SetsContentTypeToJSON() {
 		actual = value
 	}
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-swarm-listener/notify-services", nil)
-	notifMock := NotificationMock{
+	notifMock := NotificationOldMock{
 		ServicesCreateMock: func(services *[]service.SwarmService, retries, interval int) error {
 			return nil
 		},
@@ -109,7 +109,7 @@ func (s *ServerTestSuite) Test_NotifyServices_InvokesServicesCreate() {
 	actualServices := []service.SwarmService{}
 	actualRetries := 0
 	actualInterval := 0
-	notifMock := NotificationMock{
+	notifMock := NotificationOldMock{
 		ServicesCreateMock: func(services *[]service.SwarmService, retries, interval int) error {
 			actualServices = *services
 			actualRetries = retries
@@ -142,7 +142,7 @@ func (s *ServerTestSuite) Test_GetServices_ReturnsServices() {
 	servicerMock.On("GetServicesParameters", mock.Anything).Return(&mapParam)
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-swarm-listener/get-services", nil)
 	rw := getResponseWriterMock()
-	notifMock := NotificationMock{}
+	notifMock := NotificationOldMock{}
 	srv := NewServe(servicerMock, notifMock)
 	srv.GetServices(rw, req)
 
@@ -163,7 +163,7 @@ func (s *ServerTestSuite) Test_PingHandler_ReturnsStatus200() {
 		actual = value
 	}
 	servicerMock := getServicerMock("")
-	notifMock := NotificationMock{}
+	notifMock := NotificationOldMock{}
 	rw := getResponseWriterMock()
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-swarm-listener/ping", nil)
 	expected, _ := json.Marshal(Response{Status: "OK"})
@@ -180,7 +180,7 @@ func (s *ServerTestSuite) Test_PingHandler_ReturnsStatus200() {
 
 func (s *ServerTestSuite) Test_NewServe_SetsService() {
 	srv := service.NewServiceFromEnv()
-	notifMock := NotificationMock{}
+	notifMock := NotificationOldMock{}
 	serve := NewServe(srv, notifMock)
 
 	s.Equal(srv, serve.Service)
@@ -188,10 +188,10 @@ func (s *ServerTestSuite) Test_NewServe_SetsService() {
 
 func (s *ServerTestSuite) Test_NewServe_SetsNotifier() {
 	srv := service.NewServiceFromEnv()
-	notifMock := NotificationMock{}
+	notifMock := NotificationOldMock{}
 	serve := NewServe(srv, notifMock)
 
-	s.Equal(notifMock, serve.Notification)
+	s.Equal(notifMock, serve.NotificationOld)
 }
 
 // Mocks
@@ -274,15 +274,15 @@ func getServicerMock(skipMethod string) *ServicerMock {
 	return mockObj
 }
 
-type NotificationMock struct {
+type NotificationOldMock struct {
 	ServicesCreateMock func(services *[]service.SwarmService, retries, interval int) error
 	ServicesRemoveMock func(remove *[]string, retries, interval int) error
 }
 
-func (m NotificationMock) ServicesCreate(services *[]service.SwarmService, retries, interval int) error {
+func (m NotificationOldMock) ServicesCreate(services *[]service.SwarmService, retries, interval int) error {
 	return m.ServicesCreateMock(services, retries, interval)
 }
 
-func (m NotificationMock) ServicesRemove(remove *[]string, retries, interval int) error {
+func (m NotificationOldMock) ServicesRemove(remove *[]string, retries, interval int) error {
 	return m.ServicesRemoveMock(remove, retries, interval)
 }

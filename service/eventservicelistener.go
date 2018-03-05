@@ -11,31 +11,24 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// EventService is an event container the serviceType and the
-// service ID
-type EventService struct {
-	Type EventType
-	ID   string
+// SwarmServiceListening listens for service events
+type SwarmServiceListening interface {
+	ListenForServiceEvents(chan<- Event)
 }
 
-// EventServiceListening listens for service events
-type EventServiceListening interface {
-	ListenForServiceEvents(chan<- EventService)
-}
-
-// EventServiceListener listens for docker service events
-type EventServiceListener struct {
+// SwarmServiceListener listens for docker service events
+type SwarmServiceListener struct {
 	dockerClient *client.Client
 	log          *log.Logger
 }
 
-// NewEventServiceListener creates a `EventServiceListener`
-func NewEventServiceListener(c *client.Client, logger *log.Logger) *EventServiceListener {
-	return &EventServiceListener{dockerClient: c, log: logger}
+// NewSwarmServiceListener creates a `SwarmServiceListener`
+func NewSwarmServiceListener(c *client.Client, logger *log.Logger) *SwarmServiceListener {
+	return &SwarmServiceListener{dockerClient: c, log: logger}
 }
 
 // ListenForServiceEvents listens for events and places them on channels
-func (s EventServiceListener) ListenForServiceEvents(eventChan chan<- EventService) {
+func (s SwarmServiceListener) ListenForServiceEvents(eventChan chan<- Event) {
 	go func() {
 		filter := filters.NewArgs()
 		filter.Add("type", "service")
@@ -49,7 +42,7 @@ func (s EventServiceListener) ListenForServiceEvents(eventChan chan<- EventServi
 				if msg.Action == "remove" {
 					eventType = EventTypeRemove
 				}
-				eventChan <- EventService{
+				eventChan <- Event{
 					Type: eventType,
 					ID:   msg.Actor.ID,
 				}

@@ -46,13 +46,13 @@ func (s *EventListenerNodeTestSuite) TearDownSuite() {
 	destroyNode(s.Node0)
 }
 
-func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeCreate() {
+func (s *EventListenerNodeTestSuite) Test_ListenForNodeEvents_NodeCreate() {
 
-	enl := NewEventNodeListener(s.DockerClient, s.Logger)
+	enl := NewNodeListener(s.DockerClient, s.Logger)
 
 	// Listen for events
-	eventChan := make(chan EventNode)
-	enl.ListenForEventNodes(eventChan)
+	eventChan := make(chan Event)
+	enl.ListenForNodeEvents(eventChan)
 
 	// Create node1
 	createNode("node1", s.NetworkName)
@@ -64,7 +64,7 @@ func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeCreate() {
 	joinSwarm("node1", s.Node0, s.Node0JoinToken)
 
 	// Wait for events
-	event, err := s.waitForEventNode(eventChan)
+	event, err := s.waitForEvent(eventChan)
 	s.Require().NoError(err)
 
 	node1ID, err := getNodeID("node1", "node0")
@@ -74,9 +74,9 @@ func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeCreate() {
 	s.Equal(EventTypeCreate, event.Type)
 }
 
-func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeRemove() {
+func (s *EventListenerNodeTestSuite) Test_ListenForNodeEvents_NodeRemove() {
 
-	enl := NewEventNodeListener(s.DockerClient, s.Logger)
+	enl := NewNodeListener(s.DockerClient, s.Logger)
 
 	// Create node1 and joing swarm
 	createNode("node1", s.NetworkName)
@@ -90,33 +90,33 @@ func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeRemove() {
 	s.Require().NoError(err)
 
 	// Listen for events
-	eventChan := make(chan EventNode)
-	enl.ListenForEventNodes(eventChan)
+	eventChan := make(chan Event)
+	enl.ListenForNodeEvents(eventChan)
 
 	//Remove node1
 	removeNodeFromSwarm("node1", "node0")
 
 	// Wait for events
-	event, err := s.waitForEventNode(eventChan)
+	event, err := s.waitForEvent(eventChan)
 	s.Require().NoError(err)
 
 	s.Equal(node1ID, event.ID)
 	s.Equal(EventTypeRemove, event.Type)
 }
 
-func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeUpdateLabel() {
+func (s *EventListenerNodeTestSuite) Test_ListenForNodeEvents_NodeUpdateLabel() {
 	// Create one node
-	enl := NewEventNodeListener(s.DockerClient, s.Logger)
+	enl := NewNodeListener(s.DockerClient, s.Logger)
 
 	// Listen for events
-	eventChan := make(chan EventNode)
-	enl.ListenForEventNodes(eventChan)
+	eventChan := make(chan Event)
+	enl.ListenForNodeEvents(eventChan)
 
 	// addLabelToNode
 	addLabelToNode(s.Node0, "cats=flay", s.Node0)
 
 	// Wait for events
-	event, err := s.waitForEventNode(eventChan)
+	event, err := s.waitForEvent(eventChan)
 	s.Require().NoError(err)
 
 	s.Equal(s.Node0, event.ID)
@@ -126,7 +126,7 @@ func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeUpdateLabel() 
 	removeLabelFromNode(s.Node0, "cats", s.Node0)
 
 	// Wait for events
-	event, err = s.waitForEventNode(eventChan)
+	event, err = s.waitForEvent(eventChan)
 	s.Require().NoError(err)
 
 	s.Equal(s.Node0, event.ID)
@@ -134,7 +134,7 @@ func (s *EventListenerNodeTestSuite) Test_ListenForEventNodes_NodeUpdateLabel() 
 
 }
 
-func (s *EventListenerNodeTestSuite) waitForEventNode(events <-chan EventNode) (*EventNode, error) {
+func (s *EventListenerNodeTestSuite) waitForEvent(events <-chan Event) (*Event, error) {
 	timeOut := time.NewTimer(time.Second * 5).C
 	for {
 		select {

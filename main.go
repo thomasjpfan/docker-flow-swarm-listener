@@ -8,7 +8,7 @@ import (
 func main() {
 	logPrintf("Starting Docker Flow: Swarm Listener")
 	s := service.NewServiceFromEnv()
-	n := service.NewNotificationFromEnv()
+	n := service.NewNotificationOldFromEnv()
 	el := service.NewEventListenerFromEnv("service")
 	serve := NewServe(s, n)
 	go serve.Run()

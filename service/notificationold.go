@@ -18,27 +18,27 @@ type EventServiceNotifier interface {
 	ServicesRemove(services *[]SwarmService, retries, interval int) error
 }
 
-// Notification defines the structure with exported functions
-type Notification struct {
+// NotificationOld defines the structure with exported functions
+type NotificationOld struct {
 	CreateServiceAddr []string
 	RemoveServiceAddr []string
 }
 
-func newNotification(createServiceAddr, removeServiceAddr []string) *Notification {
-	return &Notification{
+func newNotificationOld(createServiceAddr, removeServiceAddr []string) *NotificationOld {
+	return &NotificationOld{
 		CreateServiceAddr: createServiceAddr,
 		RemoveServiceAddr: removeServiceAddr,
 	}
 }
 
-// NewNotificationFromEnv returns `notification` instance
-func NewNotificationFromEnv() *Notification {
+// NewNotificationOldFromEnv returns `notification` instance
+func NewNotificationOldFromEnv() *NotificationOld {
 	createServiceAddr, removeServiceAddr := getSenderAddressesFromEnvVars("notification", "notify", "notif")
-	return newNotification(createServiceAddr, removeServiceAddr)
+	return newNotificationOld(createServiceAddr, removeServiceAddr)
 }
 
 // ServicesCreate sends create service notifications
-func (m *Notification) ServicesCreate(services *[]SwarmService, retries, interval int) error {
+func (m *NotificationOld) ServicesCreate(services *[]SwarmService, retries, interval int) error {
 	for _, s := range *services {
 		if _, ok := s.Spec.Labels[os.Getenv("DF_NOTIFY_LABEL")]; ok {
 			params := getServiceParams(&s)
@@ -55,7 +55,7 @@ func (m *Notification) ServicesCreate(services *[]SwarmService, retries, interva
 }
 
 // GetCreateServiceAddr returns create service addresses
-func (m *Notification) GetCreateServiceAddr(urlValues map[string][]string) []string {
+func (m *NotificationOld) GetCreateServiceAddr(urlValues map[string][]string) []string {
 	if val, ok := urlValues["notifyService"]; ok {
 		addresses := []string{}
 		services := strings.Split(val[0], ",")
@@ -73,7 +73,7 @@ func (m *Notification) GetCreateServiceAddr(urlValues map[string][]string) []str
 }
 
 // ServicesRemove sends remove service notifications, remove is a list of serviceIDs
-func (m *Notification) ServicesRemove(remove *[]string, retries, interval int) error {
+func (m *NotificationOld) ServicesRemove(remove *[]string, retries, interval int) error {
 	errs := []error{}
 	for _, v := range *remove {
 		serviceName, ok := CachedServices[v]
@@ -129,11 +129,11 @@ func (m *Notification) ServicesRemove(remove *[]string, retries, interval int) e
 }
 
 // GetRemoveServiceAddr returns remove service addresses
-func (m *Notification) GetRemoveServiceAddr(urlValues map[string][]string) []string {
+func (m *NotificationOld) GetRemoveServiceAddr(urlValues map[string][]string) []string {
 	return m.RemoveServiceAddr
 }
 
-func (m *Notification) sendCreateServiceRequest(serviceID, addr string, params url.Values, retries, interval int) {
+func (m *NotificationOld) sendCreateServiceRequest(serviceID, addr string, params url.Values, retries, interval int) {
 	urlObj, err := url.Parse(addr)
 	if err != nil {
 		logPrintf("ERROR: %s", err.Error())

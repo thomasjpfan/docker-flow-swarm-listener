@@ -13,31 +13,25 @@ import (
 	"../metrics"
 )
 
-// EventNode is an events containing the eventtype and the node ID
-type EventNode struct {
-	Type EventType
-	ID   string
+// NodeListening listens to node events
+type NodeListening interface {
+	ListenForNodeEvents(<-chan Event)
 }
 
-// EventNodeListening listens to node events
-type EventNodeListening interface {
-	ListenForEventNodes(<-chan EventNode)
-}
-
-// EventNodeListener listens for docker node events
-type EventNodeListener struct {
+// NodeListener listens for docker node events
+type NodeListener struct {
 	dockerClient *client.Client
 	log          *log.Logger
 }
 
-// NewEventNodeListener creates a `EventNodeListener``
-func NewEventNodeListener(c *client.Client, logger *log.Logger) *EventNodeListener {
-	return &EventNodeListener{dockerClient: c, log: logger}
+// NewNodeListener creates a `NodeListener``
+func NewNodeListener(c *client.Client, logger *log.Logger) *NodeListener {
+	return &NodeListener{dockerClient: c, log: logger}
 }
 
-// ListenForEventNodes listens for events and places them on channels
-func (s EventNodeListener) ListenForEventNodes(
-	eventChan chan<- EventNode) {
+// ListenForNodeEvents listens for events and places them on channels
+func (s NodeListener) ListenForNodeEvents(
+	eventChan chan<- Event) {
 
 	go func() {
 		filter := filters.NewArgs()
@@ -55,13 +49,13 @@ func (s EventNodeListener) ListenForEventNodes(
 				if msg.Action == "remove" {
 					eventType = EventTypeRemove
 				}
-				eventChan <- EventNode{
+				eventChan <- Event{
 					Type: eventType,
 					ID:   msg.Actor.ID,
 				}
 			case err := <-msgErrs:
 				s.log.Printf("%v, Restarting docker event stream", err)
-				metrics.RecordError("ListenForEventNodes")
+				metrics.RecordError("ListenForNodeEvents")
 				time.Sleep(time.Second)
 				// Reopen event stream
 				msgStream, msgErrs = s.dockerClient.Events(
@@ -75,7 +69,7 @@ func (s EventNodeListener) ListenForEventNodes(
 // validEventNode returns false when event is valid (should be passed through)
 // this will still allow through 4-5 events from changing a worker node
 // to a manager node or vise versa.
-func (s EventNodeListener) validEventNode(msg events.Message) bool {
+func (s NodeListener) validEventNode(msg events.Message) bool {
 	if msg.Action == "remove" {
 		return true
 	}

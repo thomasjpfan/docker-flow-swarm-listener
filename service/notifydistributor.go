@@ -4,8 +4,8 @@ import (
 	"net/url"
 )
 
-// NotificationValue is a node notification
-type NotificationValue struct {
+// Notification is a node notification
+type Notification struct {
 	eventType EventType
 	urlValues url.Values
 }
@@ -13,16 +13,16 @@ type NotificationValue struct {
 // NotifyEndpoint holds Notifiers and channels to watch
 type NotifyEndpoint struct {
 	Host            string
-	ServiceChan     chan NotificationValue
+	ServiceChan     chan Notification
 	ServiceNotifier *Notifier
-	NodeChan        chan NotificationValue
+	NodeChan        chan Notification
 	NodeNotifier    *Notifier
 }
 
-// NotifyDistributing takes a stream of `NotificationValue` and
+// NotifyDistributing takes a stream of `Notification` and
 // NodeNotifiction and distributes it listeners
 type NotifyDistributing interface {
-	Run(serviceChan <-chan NotificationValue, nodeChan <-chan NotificationValue)
+	Run(serviceChan <-chan Notification, nodeChan <-chan Notification)
 }
 
 // NotifyDistributor distributes service and node notifications to `NotifyEnpoint`s
