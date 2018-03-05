@@ -5,34 +5,43 @@ import (
 	"net/url"
 )
 
+// NotifyType is the type of notification to send
+type NotifyType string
+
+const (
+	// NotifyServiceType is a node notification
+	NotifyServiceType NotifyType = "service"
+	// NotifyNodeType is a node notification
+	NotifyNodeType NotifyType = "node"
+)
+
 // NotificationSender sends notifications to listeners
 type NotificationSender interface {
 	Create(urlValues url.Values) error
 	Remove(urlValues url.Values) error
-	HasListeners() bool
 }
 
 // Notifier implements `NotificationSender`
 type Notifier struct {
-	createAddrs  []string
-	removeAddrs  []string
-	notifierType string
-	retries      int
-	internval    int
-	log          *log.Logger
+	createAddrs []string
+	removeAddrs []string
+	notifyType  NotifyType
+	retries     int
+	internval   int
+	log         *log.Logger
 }
 
 // NewNotifier returns a `Notifier`
 func NewNotifier(
-	createAddrs, removeAddrs []string, notifierType string,
+	createAddrs, removeAddrs []string, notifyType NotifyType,
 	retries int, interval int, logger *log.Logger) *Notifier {
 	return &Notifier{
-		createAddrs:  createAddrs,
-		removeAddrs:  removeAddrs,
-		notifierType: notifierType,
-		retries:      retries,
-		internval:    interval,
-		log:          logger,
+		createAddrs: createAddrs,
+		removeAddrs: removeAddrs,
+		notifyType:  notifyType,
+		retries:     retries,
+		internval:   interval,
+		log:         logger,
 	}
 }
 
@@ -44,9 +53,4 @@ func (m Notifier) Create(urlValues url.Values) error {
 // Remove sends remove notifications to listeners
 func (m Notifier) Remove(urlValues url.Values) error {
 	return nil
-}
-
-// HasListeners when there are listeners
-func (m Notifier) HasListeners() bool {
-	return (len(m.createAddrs) + len(m.removeAddrs)) > 0
 }

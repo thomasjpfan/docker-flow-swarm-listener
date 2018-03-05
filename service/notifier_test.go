@@ -41,11 +41,6 @@ func (s *NotifierTestSuite) TearDownTest() {
 	s.LogBytes.Reset()
 }
 
-func (s *NotifierTestSuite) Test_NoListeners() {
-	n := NewNotifier([]string{}, []string{}, "service", 5, 1, s.Logger)
-	s.False(n.HasListeners())
-}
-
 // Create
 
 func (s *NotifierTestSuite) Test_Create_SendsRequests() {
@@ -73,7 +68,7 @@ func (s *NotifierTestSuite) Test_Create_SendsRequests() {
 	url1 := fmt.Sprintf("%s/v1/docker-flow-proxy/reconfigure", httpSrv.URL)
 	url2 := fmt.Sprintf("%s/something/else", httpSrv.URL)
 
-	n := NewNotifier([]string{url1, url2}, []string{}, "service", 5, 1, s.Logger)
+	n := NewNotifier([]string{url1, url2}, []string{}, NotifyServiceType, 5, 1, s.Logger)
 	err := n.Create(s.CreateValues)
 	s.Require().NoError(err)
 
@@ -94,7 +89,7 @@ func (s *NotifierTestSuite) Test_Create_SendsRequests() {
 }
 
 func (s *NotifierTestSuite) Test_Create_ReturnsError_WhenUrlCannotBeParsed() {
-	n := NewNotifier([]string{"%%%"}, []string{}, "service", 5, 1, s.Logger)
+	n := NewNotifier([]string{"%%%"}, []string{}, NotifyServiceType, 5, 1, s.Logger)
 	err := n.Create(s.CreateValues)
 	s.Error(err)
 }
@@ -106,7 +101,7 @@ func (s *NotifierTestSuite) Test_Create_ReturnsError_WhenHttpStatusIsNot200() {
 	}))
 
 	n := NewNotifier(
-		[]string{httpSrv.URL}, []string{}, "node", 1, 0, s.Logger)
+		[]string{httpSrv.URL}, []string{}, NotifyNodeType, 1, 0, s.Logger)
 	err := n.Create(s.CreateValues)
 	s.Require().NoError(err)
 }
@@ -118,7 +113,7 @@ func (s *NotifierTestSuite) Test_Create_DoesNotReturnError_WhenHttpStatusIs409()
 	}))
 
 	n := NewNotifier(
-		[]string{httpSrv.URL}, []string{}, "node", 1, 0, s.Logger)
+		[]string{httpSrv.URL}, []string{}, NotifyNodeType, 1, 0, s.Logger)
 	err := n.Create(s.CreateValues)
 
 	s.NoError(err)
@@ -126,7 +121,7 @@ func (s *NotifierTestSuite) Test_Create_DoesNotReturnError_WhenHttpStatusIs409()
 
 func (s *NotifierTestSuite) Test_Create_ReturnsError_WhenHttpRequestReturnsError() {
 	n := NewNotifier(
-		[]string{}, []string{"this-does-not-exist"}, "node", 2, 1, s.Logger)
+		[]string{}, []string{"this-does-not-exist"}, NotifyNodeType, 2, 1, s.Logger)
 
 	err := n.Create(s.CreateValues)
 	s.Error(err)
@@ -145,7 +140,7 @@ func (s *NotifierTestSuite) Test_Create_RetriesRequests() {
 	}))
 
 	n := NewNotifier(
-		[]string{httpSrv.URL}, []string{}, "service", 2, 1, s.Logger)
+		[]string{httpSrv.URL}, []string{}, NotifyServiceType, 2, 1, s.Logger)
 	err := n.Create(s.CreateValues)
 	s.Require().NoError(err)
 
@@ -180,7 +175,7 @@ func (s *NotifierTestSuite) Test_Remove_SendsRequests() {
 	url1 := fmt.Sprintf("%s/v1/docker-flow-proxy/remove", httpSrv.URL)
 	url2 := fmt.Sprintf("%s/something/else", httpSrv.URL)
 
-	n := NewNotifier([]string{url1, url2}, []string{}, "service", 5, 1, s.Logger)
+	n := NewNotifier([]string{url1, url2}, []string{}, NotifyServiceType, 5, 1, s.Logger)
 	err := n.Remove(s.RemoveValues)
 	s.Require().NoError(err)
 
@@ -201,7 +196,7 @@ func (s *NotifierTestSuite) Test_Remove_SendsRequests() {
 }
 
 func (s *NotifierTestSuite) Test_Remove_ReturnsError_WhenUrlCannotBeParsed() {
-	n := NewNotifier([]string{}, []string{"%%%"}, "node", 5, 1, s.Logger)
+	n := NewNotifier([]string{}, []string{"%%%"}, NotifyNodeType, 5, 1, s.Logger)
 	err := n.Remove(s.RemoveValues)
 	s.Error(err)
 }
@@ -213,14 +208,14 @@ func (s *NotifierTestSuite) Test_Remove_ReturnsError_WhenHttpStatusIsNot200() {
 	}))
 
 	n := NewNotifier(
-		[]string{}, []string{httpSrv.URL}, "service", 1, 0, s.Logger)
+		[]string{}, []string{httpSrv.URL}, NotifyServiceType, 1, 0, s.Logger)
 	err := n.Remove(s.CreateValues)
 	s.NoError(err)
 }
 
 func (s *NotifierTestSuite) Test_Remove_ReturnsError_WhenHttpRequestReturnsError() {
 	n := NewNotifier(
-		[]string{"this-does-not-exist"}, []string{}, "service", 2, 1, s.Logger)
+		[]string{"this-does-not-exist"}, []string{}, NotifyServiceType, 2, 1, s.Logger)
 	err := n.Remove(s.RemoveValues)
 	s.Error(err)
 }
@@ -238,7 +233,7 @@ func (s *NotifierTestSuite) Test_Remove_RetriesRequests() {
 	}))
 
 	n := NewNotifier(
-		[]string{}, []string{httpSrv.URL}, "node", 2, 1, s.Logger)
+		[]string{}, []string{httpSrv.URL}, NotifyNodeType, 2, 1, s.Logger)
 	err := n.Remove(s.CreateValues)
 	s.Require().NoError(err)
 

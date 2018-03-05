@@ -11,18 +11,18 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type ServicEventListenerTestSuite struct {
+type EventServiceListenerTestSuite struct {
 	suite.Suite
 	ServiceName  string
 	DockerClient *client.Client
 	Logger       *log.Logger
 }
 
-func TestServicEventListenerTestSuite(t *testing.T) {
-	suite.Run(t, new(ServicEventListenerTestSuite))
+func TestEventServiceListenerTestSuite(t *testing.T) {
+	suite.Run(t, new(EventServiceListenerTestSuite))
 }
 
-func (s *ServicEventListenerTestSuite) SetupSuite() {
+func (s *EventServiceListenerTestSuite) SetupSuite() {
 	s.ServiceName = "my-service"
 	client, err := NewDockerClientFromEnv()
 	s.Require().NoError(err)
@@ -30,11 +30,11 @@ func (s *ServicEventListenerTestSuite) SetupSuite() {
 	s.Logger = log.New(os.Stdout, "", 0)
 }
 
-func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_CreateService() {
-	snl := NewServicEventListener(s.DockerClient, s.Logger)
+func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_CreateService() {
+	snl := NewEventServiceListener(s.DockerClient, s.Logger)
 
 	// Listen for events
-	eventChan := make(chan ServicEvent)
+	eventChan := make(chan EventService)
 	snl.ListenForServiceEvents(eventChan)
 
 	createTestService("util-1", []string{}, false, "", "")
@@ -49,12 +49,12 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_CreateService
 	event, err := s.waitForServiceEvent(eventChan)
 	s.Require().NoError(err)
 
-	s.Equal(ServicEventCreate, event.Type)
+	s.Equal(EventTypeCreate, event.Type)
 	s.Equal(utilID, event.ID)
 }
 
-func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_UpdateService() {
-	snl := NewServicEventListener(s.DockerClient, s.Logger)
+func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_UpdateService() {
+	snl := NewEventServiceListener(s.DockerClient, s.Logger)
 
 	createTestService("util-1", []string{}, false, "", "")
 	defer func() {
@@ -66,7 +66,7 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_UpdateService
 	s.Require().NoError(err)
 
 	// Listen for events
-	eventChan := make(chan ServicEvent)
+	eventChan := make(chan EventService)
 	snl.ListenForServiceEvents(eventChan)
 
 	// Update label
@@ -75,7 +75,7 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_UpdateService
 	event, err := s.waitForServiceEvent(eventChan)
 	s.Require().NoError(err)
 
-	s.Equal(ServicEventCreate, event.Type)
+	s.Equal(EventTypeCreate, event.Type)
 	s.Equal(utilID, event.ID)
 
 	// Remove label
@@ -84,12 +84,12 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_UpdateService
 	event, err = s.waitForServiceEvent(eventChan)
 	s.Require().NoError(err)
 
-	s.Equal(ServicEventCreate, event.Type)
+	s.Equal(EventTypeCreate, event.Type)
 	s.Equal(utilID, event.ID)
 }
 
-func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_RemoveService() {
-	snl := NewServicEventListener(s.DockerClient, s.Logger)
+func (s *EventServiceListenerTestSuite) Test_ListenForServiceEvents_RemoveService() {
+	snl := NewEventServiceListener(s.DockerClient, s.Logger)
 
 	createTestService("util-1", []string{}, false, "", "")
 	defer func() {
@@ -101,7 +101,7 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_RemoveService
 	s.Require().NoError(err)
 
 	// Listen for events
-	eventChan := make(chan ServicEvent)
+	eventChan := make(chan EventService)
 	snl.ListenForServiceEvents(eventChan)
 
 	// Remove service
@@ -110,11 +110,11 @@ func (s *ServicEventListenerTestSuite) Test_ListenForServiceEvents_RemoveService
 	event, err := s.waitForServiceEvent(eventChan)
 	s.Require().NoError(err)
 
-	s.Equal(ServicEventRemove, event.Type)
+	s.Equal(EventTypeRemove, event.Type)
 	s.Equal(utilID, event.ID)
 }
 
-func (s *ServicEventListenerTestSuite) waitForServiceEvent(events <-chan ServicEvent) (*ServicEvent, error) {
+func (s *EventServiceListenerTestSuite) waitForServiceEvent(events <-chan EventService) (*EventService, error) {
 	timeOut := time.NewTimer(time.Second * 5).C
 	for {
 		select {

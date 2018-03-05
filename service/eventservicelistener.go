@@ -11,41 +11,31 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// ServicEventType are types of service events
-type ServicEventType string
-
-const (
-	// ServicEventCreate is for create or update event
-	ServicEventCreate ServicEventType = "create"
-	// ServicEventRemove is for remove events
-	ServicEventRemove ServicEventType = "remove"
-)
-
-// ServicEvent is an event container the serviceType and the
+// EventService is an event container the serviceType and the
 // service ID
-type ServicEvent struct {
-	Type ServicEventType
+type EventService struct {
+	Type EventType
 	ID   string
 }
 
-// ServicEventListening listens for service events
-type ServicEventListening interface {
-	ListenForServiceEvents(chan<- ServicEvent)
+// EventServiceListening listens for service events
+type EventServiceListening interface {
+	ListenForServiceEvents(chan<- EventService)
 }
 
-// ServicEventListener listens for docker service events
-type ServicEventListener struct {
+// EventServiceListener listens for docker service events
+type EventServiceListener struct {
 	dockerClient *client.Client
 	log          *log.Logger
 }
 
-// NewServicEventListener creates a `ServicEventListener`
-func NewServicEventListener(c *client.Client, logger *log.Logger) *ServicEventListener {
-	return &ServicEventListener{dockerClient: c, log: logger}
+// NewEventServiceListener creates a `EventServiceListener`
+func NewEventServiceListener(c *client.Client, logger *log.Logger) *EventServiceListener {
+	return &EventServiceListener{dockerClient: c, log: logger}
 }
 
 // ListenForServiceEvents listens for events and places them on channels
-func (s ServicEventListener) ListenForServiceEvents(eventChan chan<- ServicEvent) {
+func (s EventServiceListener) ListenForServiceEvents(eventChan chan<- EventService) {
 	go func() {
 		filter := filters.NewArgs()
 		filter.Add("type", "service")
@@ -55,11 +45,11 @@ func (s ServicEventListener) ListenForServiceEvents(eventChan chan<- ServicEvent
 		for {
 			select {
 			case msg := <-msgStream:
-				eventType := ServicEventCreate
+				eventType := EventTypeCreate
 				if msg.Action == "remove" {
-					eventType = ServicEventRemove
+					eventType = EventTypeRemove
 				}
-				eventChan <- ServicEvent{
+				eventChan <- EventService{
 					Type: eventType,
 					ID:   msg.Actor.ID,
 				}

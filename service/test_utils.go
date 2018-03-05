@@ -43,7 +43,7 @@ func destroyNode(name string) {
 func newTestNodeDockerClient(nodeName string) (*client.Client, error) {
 	host := fmt.Sprintf("tcp://%s:2375", nodeName)
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	return client.NewClient(host, dockerApiVersion, nil, defaultHeaders)
+	return client.NewClient(host, dockerAPIVersion, nil, defaultHeaders)
 }
 
 func getWorkerToken(nodeName string) string {

@@ -6,7 +6,7 @@ import (
 
 // NodeCacher caches sevices
 type NodeCacher interface {
-	InsertAndCheck(ss swarm.Node, eventType NodeEventType) bool
+	InsertAndCheck(ss swarm.Node, eventType EventType) bool
 }
 
 // NodeCache implements `NodeCacher`
@@ -18,6 +18,6 @@ type NodeCache struct {
 // InsertAndCheck inserts `swarm.Node` into cache if the service is updated or created
 // If the service is removed, it will be removed from the cache
 // If the service is new, created, or removed, `InsertAndCheck` returns true.
-func (c NodeCache) InsertAndCheck(ss swarm.Node, eventType NodeEventType) bool {
+func (c NodeCache) InsertAndCheck(ss swarm.Node, eventType EventType) bool {
 	return false
 }

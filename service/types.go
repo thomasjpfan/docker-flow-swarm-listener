@@ -20,6 +20,16 @@ type SwarmService struct {
 	NodeInfo *NodeIPSet
 }
 
+// EventType is the type of event from eventlisteners
+type EventType string
+
+const (
+	// EventTypeCreate is for create or update event
+	EventTypeCreate EventType = "create"
+	// EventTypeRemove is for remove events
+	EventTypeRemove EventType = "remove"
+)
+
 // NodeIP defines a node/addr pair
 type NodeIP struct {
 	Name string `json:"name"`

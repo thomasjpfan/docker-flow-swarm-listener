@@ -20,12 +20,16 @@ type ServicInspector interface {
 type ServicClient struct {
 	DockerClient   *client.Client
 	FilterLabel    string
+	FilterKey      string
 	ScrapeNetLabel string
 }
 
 // NewServicClient creats a `ServicClient`
 func NewServicClient(c *client.Client, filterLabel, scrapNetLabel string) *ServicClient {
-	return &ServicClient{DockerClient: c, FilterLabel: filterLabel,
+	key := strings.SplitN(filterLabel, "=", 2)[0]
+	return &ServicClient{DockerClient: c,
+		FilterLabel:    filterLabel,
+		FilterKey:      key,
 		ScrapeNetLabel: scrapNetLabel}
 }
 
@@ -39,8 +43,7 @@ func (c ServicClient) ServicInspect(serviceID string, includeNodeIPInfo bool) (*
 	}
 
 	// Check if service has label
-	key := strings.SplitN(c.FilterLabel, "=", 2)[0]
-	if _, ok := service.Spec.Labels[key]; !ok {
+	if _, ok := service.Spec.Labels[c.FilterKey]; !ok {
 		return nil, nil
 	}
 

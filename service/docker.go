@@ -6,7 +6,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-var dockerApiVersion string = "v1.27"
+var dockerAPIVersion string = "v1.27"
 
 // NewDockerClientFromEnv returns a `*client.Client` struct using environment variable
 // `DF_DOCKER_HOST` for the host
@@ -16,5 +16,5 @@ func NewDockerClientFromEnv() (*client.Client, error) {
 		host = os.Getenv("DF_DOCKER_HOST")
 	}
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	return client.NewClient(host, dockerApiVersion, nil, defaultHeaders)
+	return client.NewClient(host, dockerAPIVersion, nil, defaultHeaders)
 }

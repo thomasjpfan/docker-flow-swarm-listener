@@ -117,7 +117,7 @@ func (m *Service) GetServicesFromID(serviceID string) (*[]SwarmService, error) {
 // NewService returns a new instance of the `Service` structure
 func NewService(host string) *Service {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	dc, err := client.NewClient(host, dockerApiVersion, nil, defaultHeaders)
+	dc, err := client.NewClient(host, dockerAPIVersion, nil, defaultHeaders)
 	if err != nil {
 		logPrintf(err.Error())
 	}

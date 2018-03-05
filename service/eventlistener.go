@@ -29,7 +29,7 @@ type EventListener struct {
 // NewEventListener creates a `EventListener` with a docker host
 func NewEventListener(host, eventType string) *EventListener {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	dc, err := client.NewClient(host, dockerApiVersion, nil, defaultHeaders)
+	dc, err := client.NewClient(host, dockerAPIVersion, nil, defaultHeaders)
 	if err != nil {
 		logPrintf(err.Error())
 	}
