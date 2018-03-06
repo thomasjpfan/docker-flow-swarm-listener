@@ -25,143 +25,151 @@ func (s *NodeCacheTestSuite) SetupTest() {
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_NewNode_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_SameLabel_ReturnsFalse() {
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
 	isUpdated = s.Cache.InsertAndCheck(s.NMini)
 	s.False(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_NewNodeLabel_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.NodeLabels["com.df.wow2"] = "yup2"
+	newNMini := getNewNodeMini()
+	newNMini.NodeLabels["com.df.wow2"] = "yup2"
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_UpdateNodeLabel_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.NodeLabels["com.df.wow"] = "yup2"
+	newNMini := getNewNodeMini()
+	newNMini.NodeLabels["com.df.wow"] = "yup2"
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_NewEngineLabel_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.NodeLabels["com.df.mars"] = "far"
+	newNMini := getNewNodeMini()
+	newNMini.NodeLabels["com.df.mars"] = "far"
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_UpdateEngineLabel_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.NodeLabels["com.df.world"] = "flat"
+	newNMini := getNewNodeMini()
+	newNMini.NodeLabels["com.df.world"] = "flat"
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_ChangeRole_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.Role = swarm.NodeRoleManager
+	newNMini := getNewNodeMini()
+	newNMini.Role = swarm.NodeRoleManager
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_ChangeState_ReturnsTrue() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.State = swarm.NodeStateDown
+	newNMini := getNewNodeMini()
+	newNMini.State = swarm.NodeStateDown
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_ChangeAvailability_ReturnsTrue() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.Availability = swarm.NodeAvailabilityPause
+	newNMini := getNewNodeMini()
+	newNMini.Availability = swarm.NodeAvailabilityPause
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_InsertAndCheck_ChangeIndexVersion_ReturnsTrue() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
-	s.NMini.VersionIndex = uint64(4)
+	newNMini := getNewNodeMini()
+	newNMini.VersionIndex = uint64(4)
 
-	isUpdated = s.Cache.InsertAndCheck(s.NMini)
+	isUpdated = s.Cache.InsertAndCheck(newNMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_GetAndRemove_InCache_ReturnsNodeMini_RemovesFromCache() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.NMini)
 
 	removedNMini, ok := s.Cache.GetAndRemove(s.NMini.ID)
 	s.True(ok)
-	s.AssertNotInCache()
+	s.AssertNotInCache(s.NMini)
 	s.Equal(s.NMini, removedNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_GetAndRemove_NotInCache_ReturnsFalse() {
 	_, ok := s.Cache.GetAndRemove(s.NMini.ID)
 	s.False(ok)
-	s.AssertNotInCache()
+	s.AssertNotInCache(s.NMini)
 }
 
-func (s *NodeCacheTestSuite) AssertInCache() {
-	ss, ok := s.Cache.get(s.NMini.ID)
+func (s *NodeCacheTestSuite) AssertInCache(nm NodeMini) {
+	ss, ok := s.Cache.get(nm.ID)
 	s.True(ok)
-	s.Equal(s.NMini, ss)
+	s.Equal(nm, ss)
 }
 
-func (s *NodeCacheTestSuite) AssertNotInCache() {
-	_, ok := s.Cache.get(s.NMini.ID)
+func (s *NodeCacheTestSuite) AssertNotInCache(nm NodeMini) {
+	_, ok := s.Cache.get(nm.ID)
 	s.False(ok)
 }

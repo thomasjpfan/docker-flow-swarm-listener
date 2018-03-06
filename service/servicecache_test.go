@@ -3,7 +3,6 @@ package service
 import (
 	"testing"
 
-	"github.com/docker/docker/api/types/swarm"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -26,106 +25,110 @@ func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_NewService_ReturnsTrue(
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
 
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_NewServiceGlobal_ReturnsTrue() {
 
-	s.SSMini.Mode = swarm.ServiceMode{
-		Global: &swarm.GlobalService{},
-	}
-
+	s.SSMini.Replicas = uint64(0)
+	s.SSMini.Global = true
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_SameService_ReturnsFalse() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 
-	isUpdated = s.Cache.InsertAndCheck(s.SSMini)
+	newSSMini := getNewSwarmServiceMini()
+
+	isUpdated = s.Cache.InsertAndCheck(newSSMini)
 	s.False(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newSSMini)
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_NewLabel_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 
-	s.SSMini.Labels["com.df.whatisthis"] = "howareyou"
+	newSSMini := getNewSwarmServiceMini()
+	newSSMini.Labels["com.df.whatisthis"] = "howareyou"
 
-	isUpdated = s.Cache.InsertAndCheck(s.SSMini)
+	isUpdated = s.Cache.InsertAndCheck(newSSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newSSMini)
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_NewLabel_SameKey_ReturnsTrue() {
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 
-	s.SSMini.Labels["com.df.hello"] = "sf"
+	newSSMini := getNewSwarmServiceMini()
+	newSSMini.Labels["com.df.hello"] = "sf"
 
-	isUpdated = s.Cache.InsertAndCheck(s.SSMini)
+	isUpdated = s.Cache.InsertAndCheck(newSSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newSSMini)
 }
 
-func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_IncreasedReplicas_ReturnsTrue() {
+func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_ChangedReplicas_ReturnsTrue() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 
-	newReplicas := uint64(5)
-	s.SSMini.Mode.Replicated.Replicas = &newReplicas
+	newSSMini := getNewSwarmServiceMini()
+	newSSMini.Replicas = uint64(4)
 
-	isUpdated = s.Cache.InsertAndCheck(s.SSMini)
+	isUpdated = s.Cache.InsertAndCheck(newSSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newSSMini)
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_ReplicasDescToZero_ReturnsTrue() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 
-	newReplicas := uint64(0)
-	s.SSMini.Mode.Replicated.Replicas = &newReplicas
+	newSSMini := getNewSwarmServiceMini()
+	newSSMini.Replicas = uint64(0)
 
-	isUpdated = s.Cache.InsertAndCheck(s.SSMini)
+	isUpdated = s.Cache.InsertAndCheck(newSSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newSSMini)
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_NewNodeInfo_ReturnsTrue() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 
+	newSSMini := getNewSwarmServiceMini()
 	nodeSet := NodeIPSet{}
 	nodeSet.Add("node-3", "1.0.2.1")
+	newSSMini.NodeInfo = &nodeSet
 
-	isUpdated = s.Cache.InsertAndCheck(s.SSMini)
+	isUpdated = s.Cache.InsertAndCheck(newSSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(newSSMini)
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_GetAndRemove_InCache_ReturnsSwarmServiceMini_RemovesFromCache() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.SSMini)
 	s.True(isUpdated)
-	s.AssertInCache()
+	s.AssertInCache(s.SSMini)
 
 	removedSSMini, ok := s.Cache.GetAndRemove(s.SSMini.ID)
 	s.True(ok)
-	s.AssertNotInCache()
+	s.AssertNotInCache(s.SSMini)
 	s.Equal(s.SSMini, removedSSMini)
 
 }
@@ -134,16 +137,16 @@ func (s *SwarmServiceCacheTestSuite) Test_GetAndRemove_NotInCache_ReturnsFalse()
 
 	_, ok := s.Cache.GetAndRemove(s.SSMini.ID)
 	s.False(ok)
-	s.AssertNotInCache()
+	s.AssertNotInCache(s.SSMini)
 }
 
-func (s *SwarmServiceCacheTestSuite) AssertInCache() {
-	ss, ok := s.Cache.get(s.SSMini.ID)
+func (s *SwarmServiceCacheTestSuite) AssertInCache(ssm SwarmServiceMini) {
+	ss, ok := s.Cache.get(ssm.ID)
 	s.True(ok)
-	s.Equal(s.SSMini, ss)
+	s.Equal(ssm, ss)
 }
 
-func (s *SwarmServiceCacheTestSuite) AssertNotInCache() {
-	_, ok := s.Cache.get(s.SSMini.ID)
+func (s *SwarmServiceCacheTestSuite) AssertNotInCache(ssm SwarmServiceMini) {
+	_, ok := s.Cache.get(ssm.ID)
 	s.False(ok)
 }

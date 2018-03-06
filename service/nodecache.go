@@ -22,7 +22,10 @@ func NewNodeCache() *NodeCache {
 // InsertAndCheck inserts `NodeMini` into cache
 // If the node is new or updated `InsertAndCheck` returns true.
 func (c *NodeCache) InsertAndCheck(n NodeMini) bool {
-	return false
+	cachedNode, ok := c.cache[n.ID]
+	c.cache[n.ID] = n
+
+	return !ok || !n.Equal(cachedNode)
 }
 
 // GetAndRemove removes `NodeMini` from cache
@@ -30,6 +33,10 @@ func (c *NodeCache) InsertAndCheck(n NodeMini) bool {
 // remove from cache, and return true
 // If node is not in cache, return false
 func (c *NodeCache) GetAndRemove(ID string) (NodeMini, bool) {
+	if cachedNode, ok := c.cache[ID]; ok {
+		delete(c.cache, ID)
+		return cachedNode, true
+	}
 	return NodeMini{}, false
 }
 

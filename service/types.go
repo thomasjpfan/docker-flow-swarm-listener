@@ -11,7 +11,8 @@ type SwarmServiceMini struct {
 	ID       string
 	Name     string
 	Labels   map[string]string
-	Mode     swarm.ServiceMode
+	Global   bool
+	Replicas uint64
 	NodeInfo *NodeIPSet
 }
 
@@ -20,20 +21,9 @@ func (ssm SwarmServiceMini) Equal(other SwarmServiceMini) bool {
 	return (ssm.ID == other.ID) &&
 		(ssm.Name == other.Name) &&
 		EqualMapStringString(ssm.Labels, other.Labels) &&
-		EqualSwarmServiceMode(ssm.Mode, other.Mode) &&
+		(ssm.Global == other.Global) &&
+		(ssm.Replicas == other.Replicas) &&
 		ssm.NodeInfo.Equal(*other.NodeInfo)
-}
-
-// EqualSwarmServiceMode returns true `swarm.ServiceMode`s are equal
-func EqualSwarmServiceMode(l swarm.ServiceMode, r swarm.ServiceMode) bool {
-	if l.Replicated != nil && r.Replicated != nil &&
-		*l.Replicated.Replicas == *r.Replicated.Replicas {
-		return true
-	}
-	if l.Global != nil && r.Global != nil {
-		return true
-	}
-	return false
 }
 
 // NodeMini is a optimized version of `swarm.Node` for caching purposes

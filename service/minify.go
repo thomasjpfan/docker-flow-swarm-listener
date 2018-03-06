@@ -38,18 +38,26 @@ func MinifyNode(n swarm.Node) NodeMini {
 // MinifySwarmService minifies `SwarmService`
 // only labels prefixed with `com.df.` will be used
 // `ignoreKey` wll be ignored from labels
-func MinifySwarmService(ss SwarmService, ignoreKey string) SwarmServiceMini {
+// `includeKey` will be included
+func MinifySwarmService(ss SwarmService, ignoreKey string, includeKey string) SwarmServiceMini {
 	filterLabels := map[string]string{}
 	for k, v := range ss.Spec.Labels {
-		if k != ignoreKey && strings.HasPrefix(k, "com.df.") {
+		if k != ignoreKey && strings.HasPrefix(k, "com.df.") ||
+			k == includeKey {
 			filterLabels[k] = v
 		}
 	}
-	return SwarmServiceMini{
+	ssm := SwarmServiceMini{
 		ID:       ss.ID,
 		Name:     ss.Spec.Name,
 		Labels:   filterLabels,
-		Mode:     ss.Spec.Mode,
 		NodeInfo: ss.NodeInfo,
 	}
+
+	if ss.Spec.Mode.Global != nil {
+		ssm.Global = true
+		return ssm
+	}
+	ssm.Replicas = *ss.Spec.Mode.Replicated.Replicas
+	return ssm
 }

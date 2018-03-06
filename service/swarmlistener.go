@@ -64,6 +64,7 @@ func (l SwarmListener) Run() {
 }
 
 // NotifyServices places all services on queue to notify services
+// Ignoring the cache
 func (l SwarmListener) NotifyServices() {
 
 }

@@ -22,7 +22,11 @@ func NewSwarmServiceCache() *SwarmServiceCache {
 // InsertAndCheck inserts `SwarmServiceMini` into cache
 // If the service is new or updated `InsertAndCheck` returns true.
 func (c *SwarmServiceCache) InsertAndCheck(ss SwarmServiceMini) bool {
-	return false
+	cachedService, ok := c.cache[ss.ID]
+	c.cache[ss.ID] = ss
+
+	return !ok || !ss.Equal(cachedService)
+
 }
 
 // GetAndRemove removes `SwarmServiceMini` from cache
@@ -30,6 +34,10 @@ func (c *SwarmServiceCache) InsertAndCheck(ss SwarmServiceMini) bool {
 // remove from cache, and return true
 // If service is not in cache, return false
 func (c *SwarmServiceCache) GetAndRemove(ID string) (SwarmServiceMini, bool) {
+	if cachedService, ok := c.cache[ID]; ok {
+		delete(c.cache, ID)
+		return cachedService, true
+	}
 	return SwarmServiceMini{}, false
 }
 

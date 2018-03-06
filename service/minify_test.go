@@ -108,12 +108,13 @@ func (s *MinifyUnitTestSuite) Test_MinifySwarmService_Global() {
 		Labels: map[string]string{
 			"com.df.hello": "nyc",
 		},
-		Mode:     mode,
+		Global:   true,
+		Replicas: uint64(0),
 		NodeInfo: &nodeSet,
 	}
 
 	ss := SwarmService{service, &nodeSet}
-	ssMini := MinifySwarmService(ss, "com.df.notify")
+	ssMini := MinifySwarmService(ss, "com.df.notify", "com.docker.stack.namespace")
 
 	s.Equal(expectMini, ssMini)
 }
@@ -122,10 +123,11 @@ func (s *MinifyUnitTestSuite) Test_MinifySwarmService_Replicas() {
 	annot := swarm.Annotations{
 		Name: "serviceName",
 		Labels: map[string]string{
-			"cows":          "moo",
-			"birds":         "fly",
-			"com.df.hello":  "world",
-			"com.df.notify": "true",
+			"cows":                       "moo",
+			"birds":                      "fly",
+			"com.df.hello":               "world",
+			"com.df.notify":              "true",
+			"com.docker.stack.namespace": "really",
 		},
 	}
 	replicas := uint64(3)
@@ -152,14 +154,16 @@ func (s *MinifyUnitTestSuite) Test_MinifySwarmService_Replicas() {
 		ID:   "serviceID",
 		Name: "serviceName",
 		Labels: map[string]string{
-			"com.df.hello": "world",
+			"com.df.hello":               "world",
+			"com.docker.stack.namespace": "really",
 		},
-		Mode:     mode,
+		Global:   false,
+		Replicas: uint64(3),
 		NodeInfo: &nodeSet,
 	}
 
 	ss := SwarmService{service, &nodeSet}
-	ssMini := MinifySwarmService(ss, "com.df.notify")
+	ssMini := MinifySwarmService(ss, "com.df.notify", "com.docker.stack.namespace")
 
 	s.Equal(expectMini, ssMini)
 }

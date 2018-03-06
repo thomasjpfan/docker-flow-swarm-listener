@@ -138,19 +138,14 @@ func getNewSwarmServiceMini() SwarmServiceMini {
 	nodeSet.Add("node-1", "1.0.0.1")
 	nodeSet.Add("node-2", "1.0.1.1")
 
-	replicas := uint64(4)
-
 	return SwarmServiceMini{
 		ID:   "serviceID",
 		Name: "serviceName",
 		Labels: map[string]string{
 			"com.df.hello": "nyc",
 		},
-		Mode: swarm.ServiceMode{
-			Replicated: &swarm.ReplicatedService{
-				Replicas: &replicas,
-			},
-		},
+		Replicas: uint64(3),
+		Global:   false,
 		NodeInfo: &nodeSet,
 	}
 }
