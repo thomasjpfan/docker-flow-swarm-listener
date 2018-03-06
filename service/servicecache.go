@@ -41,7 +41,8 @@ func (c *SwarmServiceCache) GetAndRemove(ID string) (SwarmServiceMini, bool) {
 	return SwarmServiceMini{}, false
 }
 
-func (c SwarmServiceCache) get(ID string) (SwarmServiceMini, bool) {
+// Get gets service from cache
+func (c SwarmServiceCache) Get(ID string) (SwarmServiceMini, bool) {
 	v, ok := c.cache[ID]
 	return v, ok
 }

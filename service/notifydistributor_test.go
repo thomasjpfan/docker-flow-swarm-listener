@@ -15,5 +15,9 @@ func NotifyDistributorUnitTestSuite(t *testing.T) {
 }
 
 func (s *NotifyDistributorTestSuite) Test_NewNotifyDistributorFromEnv() {
+}
 
+func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints() {
+
+	// notifyEndpoints := []Not
 }

@@ -141,12 +141,12 @@ func (s *SwarmServiceCacheTestSuite) Test_GetAndRemove_NotInCache_ReturnsFalse()
 }
 
 func (s *SwarmServiceCacheTestSuite) AssertInCache(ssm SwarmServiceMini) {
-	ss, ok := s.Cache.get(ssm.ID)
+	ss, ok := s.Cache.Get(ssm.ID)
 	s.True(ok)
 	s.Equal(ssm, ss)
 }
 
 func (s *SwarmServiceCacheTestSuite) AssertNotInCache(ssm SwarmServiceMini) {
-	_, ok := s.Cache.get(ssm.ID)
+	_, ok := s.Cache.Get(ssm.ID)
 	s.False(ok)
 }

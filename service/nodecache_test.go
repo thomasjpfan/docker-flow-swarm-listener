@@ -164,12 +164,12 @@ func (s *NodeCacheTestSuite) Test_GetAndRemove_NotInCache_ReturnsFalse() {
 }
 
 func (s *NodeCacheTestSuite) AssertInCache(nm NodeMini) {
-	ss, ok := s.Cache.get(nm.ID)
+	ss, ok := s.Cache.Get(nm.ID)
 	s.True(ok)
 	s.Equal(nm, ss)
 }
 
 func (s *NodeCacheTestSuite) AssertNotInCache(nm NodeMini) {
-	_, ok := s.Cache.get(nm.ID)
+	_, ok := s.Cache.Get(nm.ID)
 	s.False(ok)
 }

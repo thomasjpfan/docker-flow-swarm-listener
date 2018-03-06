@@ -7,20 +7,34 @@ type SwarmListening interface {
 	GetServices() ([]SwarmService, error)
 }
 
+// SwarmServiceMiniEvent are used to denote if `Service` should be
+// ignored by cache
+type SwarmServiceMiniEvent struct {
+	Service     SwarmServiceMini
+	IgnoreCache bool
+}
+
+// NodeMiniEvent are used to denote if `Node` should be
+// ignored by cache
+type NodeMiniEvent struct {
+	Node        NodeMini
+	IgnoreCache bool
+}
+
 // SwarmListener provides public api
 type SwarmListener struct {
 	SSListener         SwarmServiceListening
 	SSClient           SwarmServiceInspector
 	SSCache            SwarmServiceCacher
 	SSEventChan        chan Event
-	SSMiniChan         chan SwarmServiceMini
+	SSMiniChan         chan SwarmServiceMiniEvent
 	SSNotificationChan chan Notification
 
 	NodeListener         NodeListening
 	NodeClient           NodeInspector
 	NodeCache            NodeCacher
 	NodeEvent            chan Event
-	NodeMiniChan         chan NodeMini
+	NodeMiniChan         chan NodeMiniEvent
 	NodeNotificationChan chan Notification
 
 	NotifyDistributor NotifyDistributing
@@ -31,13 +45,13 @@ func newSwarmListener(
 	ssClient SwarmServiceInspector,
 	ssCache SwarmServiceCacher,
 	ssEventChan chan Event,
-	ssMiniChan chan SwarmServiceMini,
+	ssMiniChan chan SwarmServiceMiniEvent,
 
 	nodeListener NodeListening,
 	nodeClient NodeInspector,
 	nodeCache NodeCacher,
 	nodeEvent chan Event,
-	nodeMiniChan chan NodeMini,
+	nodeMiniChan chan NodeMiniEvent,
 ) *SwarmListener {
 	return &SwarmListener{
 		SSListener:   ssListener,

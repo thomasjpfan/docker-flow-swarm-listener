@@ -40,7 +40,8 @@ func (c *NodeCache) GetAndRemove(ID string) (NodeMini, bool) {
 	return NodeMini{}, false
 }
 
-func (c NodeCache) get(ID string) (NodeMini, bool) {
+// Get gets node from cache
+func (c NodeCache) Get(ID string) (NodeMini, bool) {
 	v, ok := c.cache[ID]
 	return v, ok
 }
