@@ -10,26 +10,6 @@ import (
 )
 
 // Node utils
-func getNode(
-	hostname string, nodeID string,
-	role swarm.NodeRole, labels map[string]string) swarm.Node {
-
-	annotations := swarm.Annotations{
-		Labels: labels,
-	}
-	nodeSpec := swarm.NodeSpec{
-		Annotations: annotations,
-		Role:        role,
-	}
-	nodeDescription := swarm.NodeDescription{
-		Hostname: hostname,
-	}
-	return swarm.Node{
-		ID:          nodeID,
-		Description: nodeDescription,
-		Spec:        nodeSpec,
-	}
-}
 func createNode(name string, network string) {
 	exec.Command("docker", "container", "run", "-d", "--rm",
 		"--privileged", "--network", network, "--name", name,
@@ -149,4 +129,46 @@ func removeLabelFromService(name, label string) {
 func runDockerCommandOnSocket(args []string) (string, error) {
 	output, err := exec.Command("docker", args...).Output()
 	return string(output), err
+}
+
+// SwarmServiceMini Utils
+
+func getNewSwarmServiceMini() SwarmServiceMini {
+	nodeSet := NodeIPSet{}
+	nodeSet.Add("node-1", "1.0.0.1")
+	nodeSet.Add("node-2", "1.0.1.1")
+
+	replicas := uint64(4)
+
+	return SwarmServiceMini{
+		ID:   "serviceID",
+		Name: "serviceName",
+		Labels: map[string]string{
+			"com.df.hello": "nyc",
+		},
+		Mode: swarm.ServiceMode{
+			Replicated: &swarm.ReplicatedService{
+				Replicas: &replicas,
+			},
+		},
+		NodeInfo: &nodeSet,
+	}
+}
+
+func getNewNodeMini() NodeMini {
+	return NodeMini{
+		ID:           "nodeID",
+		Hostname:     "nodehostname",
+		VersionIndex: uint64(10),
+		State:        swarm.NodeStateReady,
+		Addr:         "nodeaddr",
+		NodeLabels: map[string]string{
+			"com.df.wow": "yup",
+		},
+		EngineLabels: map[string]string{
+			"com.df.world": "round",
+		},
+		Role:         swarm.NodeRoleWorker,
+		Availability: swarm.NodeAvailabilityActive,
+	}
 }

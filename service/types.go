@@ -8,10 +8,72 @@ import (
 
 // SwarmServiceMini is a optimized version of `SwarmService` for caching purposes
 type SwarmServiceMini struct {
+	ID       string
+	Name     string
+	Labels   map[string]string
+	Mode     swarm.ServiceMode
+	NodeInfo *NodeIPSet
+}
+
+// Equal returns when SwarmServiceMini is equal to `other`
+func (ssm SwarmServiceMini) Equal(other SwarmServiceMini) bool {
+	return (ssm.ID == other.ID) &&
+		(ssm.Name == other.Name) &&
+		EqualMapStringString(ssm.Labels, other.Labels) &&
+		EqualSwarmServiceMode(ssm.Mode, other.Mode) &&
+		ssm.NodeInfo.Equal(*other.NodeInfo)
+}
+
+// EqualSwarmServiceMode returns true `swarm.ServiceMode`s are equal
+func EqualSwarmServiceMode(l swarm.ServiceMode, r swarm.ServiceMode) bool {
+	if l.Replicated != nil && r.Replicated != nil &&
+		*l.Replicated.Replicas == *r.Replicated.Replicas {
+		return true
+	}
+	if l.Global != nil && r.Global != nil {
+		return true
+	}
+	return false
 }
 
 // NodeMini is a optimized version of `swarm.Node` for caching purposes
 type NodeMini struct {
+	ID           string
+	Hostname     string
+	VersionIndex uint64
+	State        swarm.NodeState
+	Addr         string
+	NodeLabels   map[string]string
+	EngineLabels map[string]string
+	Role         swarm.NodeRole
+	Availability swarm.NodeAvailability
+}
+
+// Equal returns true when NodeMini is equal to `other`
+func (ns NodeMini) Equal(other NodeMini) bool {
+	return (ns.ID == other.ID) &&
+		(ns.Hostname == other.Hostname) &&
+		(ns.VersionIndex == other.VersionIndex) &&
+		(ns.State == other.State) &&
+		(ns.Addr == other.Addr) &&
+		EqualMapStringString(ns.NodeLabels, other.NodeLabels) &&
+		EqualMapStringString(ns.EngineLabels, other.EngineLabels) &&
+		(ns.Role == other.Role) &&
+		(ns.Availability == other.Availability)
+}
+
+// EqualMapStringString Returns true when the two maps are equal
+func EqualMapStringString(l map[string]string, r map[string]string) bool {
+	if len(l) != len(r) {
+		return false
+	}
+	for lk, lv := range l {
+		if rv, ok := r[lk]; !ok || lv != rv {
+			return false
+		}
+	}
+
+	return true
 }
 
 // SwarmService defines internal structure with service information
