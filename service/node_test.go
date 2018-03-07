@@ -24,14 +24,18 @@ func (s *NodeInspectorTestSuite) SetupSuite() {
 
 	// Create swarm of two nodes
 	// Assumes running test with docker-compose.yml
-	createNode("node1", "dockerflowswarmlistener_dfsl_network")
+	network, err := getNetworkNameWithSuffix("dfsl_network")
+	s.Require().NoError(err)
 
+	createNode("node1", network)
 	time.Sleep(time.Second)
+
 	initSwarm("node1")
+	time.Sleep(time.Second)
 
 	joinToken := getWorkerToken("node1")
 
-	createNode("node2", "dockerflowswarmlistener_dfsl_network")
+	createNode("node2", network)
 	time.Sleep(time.Second)
 	joinSwarm("node2", "node1", joinToken)
 	time.Sleep(time.Second)
