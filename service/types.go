@@ -103,7 +103,7 @@ func (ns *NodeIPSet) Add(name, addr string) {
 	(*ns)[NodeIP{Name: name, Addr: addr}] = struct{}{}
 }
 
-// EqualIPSet returns true when NodeIPSets contain the same elements
+// EqualNodeIPSet returns true when NodeIPSets contain the same elements
 func EqualNodeIPSet(l *NodeIPSet, r *NodeIPSet) bool {
 
 	if l == nil && r == nil {
