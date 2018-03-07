@@ -1,9 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -15,6 +15,7 @@ type EventListenerNodeTestSuite struct {
 	suite.Suite
 	DockerClient   *client.Client
 	Logger         *log.Logger
+	LogBytes       *bytes.Buffer
 	NetworkName    string
 	Node0          string
 	Node0JoinToken string
@@ -25,7 +26,8 @@ func TestEventListenerNodeUnitTestSuite(t *testing.T) {
 }
 
 func (s *EventListenerNodeTestSuite) SetupSuite() {
-	s.Logger = log.New(os.Stdout, "", 0)
+	s.LogBytes = new(bytes.Buffer)
+	s.Logger = log.New(s.LogBytes, "", 0)
 
 	// Assumes running test with docker-compose.yml
 	s.NetworkName = "dockerflowswarmlistener_dfsl_network"

@@ -1,4 +1,4 @@
-FROM 1.10.0-alpine3.7 AS build
+FROM golang:1.10.0-alpine3.7 AS build
 
 RUN apk add --update git
 ADD . /src

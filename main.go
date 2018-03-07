@@ -24,5 +24,5 @@ func main() {
 	swarmListener.NotifyServices()
 
 	serve := NewServe(swarmListener, l)
-	go serve.Run()
+	l.Fatal(serve.Run())
 }

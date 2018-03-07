@@ -18,12 +18,13 @@ type SwarmServiceMini struct {
 
 // Equal returns when SwarmServiceMini is equal to `other`
 func (ssm SwarmServiceMini) Equal(other SwarmServiceMini) bool {
+
 	return (ssm.ID == other.ID) &&
 		(ssm.Name == other.Name) &&
 		EqualMapStringString(ssm.Labels, other.Labels) &&
 		(ssm.Global == other.Global) &&
 		(ssm.Replicas == other.Replicas) &&
-		ssm.NodeInfo.Equal(*other.NodeInfo)
+		EqualNodeIPSet(ssm.NodeInfo, other.NodeInfo)
 }
 
 // NodeMini is a optimized version of `swarm.Node` for caching purposes
@@ -102,15 +103,23 @@ func (ns *NodeIPSet) Add(name, addr string) {
 	(*ns)[NodeIP{Name: name, Addr: addr}] = struct{}{}
 }
 
-// Equal returns true when NodeIPSets contain the same elements
-func (ns NodeIPSet) Equal(other NodeIPSet) bool {
+// EqualIPSet returns true when NodeIPSets contain the same elements
+func EqualNodeIPSet(l *NodeIPSet, r *NodeIPSet) bool {
 
-	if ns.Cardinality() != other.Cardinality() {
+	if l == nil && r == nil {
+		return true
+	} else if l == nil && r != nil {
+		return false
+	} else if l != nil && r == nil {
 		return false
 	}
 
-	for ip := range ns {
-		if _, ok := other[ip]; !ok {
+	if l.Cardinality() != r.Cardinality() {
+		return false
+	}
+
+	for ip := range *l {
+		if _, ok := (*r)[ip]; !ok {
 			return false
 		}
 	}
