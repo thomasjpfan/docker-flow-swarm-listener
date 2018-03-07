@@ -126,6 +126,17 @@ func removeLabelFromService(name, label string) {
 	runDockerCommandOnSocket(args)
 }
 
+func getNetworkNameWithSuffix(suffix string) (string, error) {
+	filter := fmt.Sprintf("name=%s$", suffix)
+	args := []string{"network", "ls", "--filter", filter, "--format", "{{ .ID }}"}
+	output, err := runDockerCommandOnSocket(args)
+	if err != nil {
+		return "", err
+	}
+	firstNetwork := strings.Split(output, "\n")
+	return firstNetwork[0], nil
+}
+
 func runDockerCommandOnSocket(args []string) (string, error) {
 	output, err := exec.Command("docker", args...).Output()
 	return string(output), err

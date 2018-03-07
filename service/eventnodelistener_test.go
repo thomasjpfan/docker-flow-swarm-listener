@@ -30,7 +30,9 @@ func (s *EventListenerNodeTestSuite) SetupSuite() {
 	s.Logger = log.New(s.LogBytes, "", 0)
 
 	// Assumes running test with docker-compose.yml
-	s.NetworkName = "dockerflowswarmlistener_dfsl_network"
+	network, err := getNetworkNameWithSuffix("dfsl_network")
+	s.Require().NoError(err)
+	s.NetworkName = network
 	s.Node0 = "node0"
 
 	createNode(s.Node0, s.NetworkName)

@@ -16,7 +16,7 @@ pipeline {
           currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
         dfBuild("docker-flow-swarm-listener")
-        sh "docker-compose -f docker-compose-test.yml run --rm tests_local"
+        sh "docker-compose run --rm tests"
       }
     }
     stage("release") {
