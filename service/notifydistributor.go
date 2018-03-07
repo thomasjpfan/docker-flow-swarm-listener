@@ -3,6 +3,7 @@ package service
 import (
 	"log"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -99,8 +100,28 @@ func insertAddrStringIntoMap(tempEP map[string]map[string]string, key, addrs str
 }
 
 // NewNotifyDistributorFromEnv creates `NotifyDistributor` from environment variables
-func NewNotifyDistributorFromEnv() *NotifyDistributor {
-	return nil
+func NewNotifyDistributorFromEnv(retries, interval int, logger *log.Logger) *NotifyDistributor {
+	var createServiceAddr, removeServiceAddr string
+	if len(os.Getenv("DF_NOTIF_CREATE_SERVICE_URL")) > 0 {
+		createServiceAddr = os.Getenv("DF_NOTIF_CREATE_SERVICE_URL")
+	} else if len(os.Getenv("DF_NOTIFY_CREATE_SERVICE_URL")) > 0 {
+		createServiceAddr = os.Getenv("DF_NOTIFY_CREATE_SERVICE_URL")
+	} else {
+		createServiceAddr = os.Getenv("DF_NOTIFICATION_URL")
+	}
+	if len(os.Getenv("DF_NOTIF_REMOVE_SERVICE_URL")) > 0 {
+		removeServiceAddr = os.Getenv("DF_NOTIF_REMOVE_SERVICE_URL")
+	} else if len(os.Getenv("DF_NOTIFY_REMOVE_SERVICE_URL")) > 0 {
+		removeServiceAddr = os.Getenv("DF_NOTIFY_REMOVE_SERVICE_URL")
+	} else {
+		removeServiceAddr = os.Getenv("DF_NOTIFICATION_URL")
+	}
+	createNodeAddr := os.Getenv("DF_NOTIFY_CREATE_NODE_URL")
+	removeNodeAddr := os.Getenv("DF_NOTIFY_REMOVE_NODE_URL")
+
+	return newNotifyDistributorfromStrings(
+		createServiceAddr, removeServiceAddr, createNodeAddr, removeNodeAddr, retries, interval, logger)
+
 }
 
 // Run starts the distributor
