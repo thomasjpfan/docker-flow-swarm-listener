@@ -58,6 +58,8 @@ func MinifySwarmService(ss SwarmService, ignoreKey string, includeKey string) Sw
 		ssm.Global = true
 		return ssm
 	}
-	ssm.Replicas = *ss.Spec.Mode.Replicated.Replicas
+	if ss.Spec.Mode.Replicated != nil && ss.Spec.Mode.Replicated.Replicas != nil {
+		ssm.Replicas = *ss.Spec.Mode.Replicated.Replicas
+	}
 	return ssm
 }

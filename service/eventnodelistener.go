@@ -15,7 +15,7 @@ import (
 
 // NodeListening listens to node events
 type NodeListening interface {
-	ListenForNodeEvents(<-chan Event)
+	ListenForNodeEvents(eventChan chan<- Event)
 }
 
 // NodeListener listens for docker node events

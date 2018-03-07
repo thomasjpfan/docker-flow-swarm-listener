@@ -1,1 +1,1 @@
-go test --cover ./... --run TestMinifyUnitTest
+go test --cover ./... -p 1 --run UnitTest

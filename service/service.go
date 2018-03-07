@@ -24,7 +24,7 @@ type SwarmServiceClient struct {
 	ScrapeNetLabel string
 }
 
-// NewSwarmServiceClient creats a `SwarmServiceClient`
+// NewSwarmServiceClient creates a `SwarmServiceClient`
 func NewSwarmServiceClient(c *client.Client, filterLabel, scrapNetLabel string) *SwarmServiceClient {
 	key := strings.SplitN(filterLabel, "=", 2)[0]
 	return &SwarmServiceClient{DockerClient: c,
