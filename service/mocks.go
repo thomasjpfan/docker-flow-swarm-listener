@@ -71,6 +71,11 @@ func (m *swarmServiceCacherMock) Get(ID string) (SwarmServiceMini, bool) {
 	return args.Get(0).(SwarmServiceMini), args.Bool(1)
 }
 
+func (m *swarmServiceCacherMock) Len() int {
+	args := m.Called()
+	return args.Int(0)
+}
+
 type nodeListeningMock struct {
 	mock.Mock
 }

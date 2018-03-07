@@ -26,6 +26,7 @@ func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_NewService_ReturnsTrue(
 	s.True(isUpdated)
 
 	s.AssertInCache(s.SSMini)
+	s.Equal(1, s.Cache.Len())
 }
 
 func (s *SwarmServiceCacheTestSuite) Test_InsertAndCheck_NewServiceGlobal_ReturnsTrue() {

@@ -75,7 +75,8 @@ func (s *WatcherTestSuite) Test_Run_ServicesChannel() {
 	s.SSClientMock.On("SwarmServiceInspect", "serviceID1", false).Return(&ss1, nil)
 	s.SSCacheMock.On("InsertAndCheck", ss1m).Return(true).
 		On("Get", "serviceID2").Return(ss2m, true).
-		On("Delete", "serviceID2")
+		On("Delete", "serviceID2").
+		On("Len").Return(2)
 	s.NotifyDistributorMock.
 		On("HasServiceListeners").Return(true).
 		On("HasNodeListeners").Return(false).

@@ -5,6 +5,7 @@ type SwarmServiceCacher interface {
 	InsertAndCheck(ss SwarmServiceMini) bool
 	Delete(ID string)
 	Get(ID string) (SwarmServiceMini, bool)
+	Len() int
 }
 
 // SwarmServiceCache implements `SwarmServiceCacher`
@@ -39,4 +40,9 @@ func (c *SwarmServiceCache) Delete(ID string) {
 func (c SwarmServiceCache) Get(ID string) (SwarmServiceMini, bool) {
 	v, ok := c.cache[ID]
 	return v, ok
+}
+
+// Len returns the number of items in cache
+func (c SwarmServiceCache) Len() int {
+	return len(c.cache)
 }

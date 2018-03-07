@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"os"
+
+	"../metrics"
 )
 
 // SwarmListening provides public api for interacting with swarm listener
@@ -148,6 +150,8 @@ func (l *SwarmListener) connectServiceChannels() {
 				if !isUpdated {
 					continue
 				}
+				metrics.RecordService(l.SSCache.Len())
+
 				params := GetSwarmServiceMiniCreateParameters(ssm)
 				paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
 				l.placeOnNotificationChan(l.SSNotificationChan, event.Type, paramsEncoded)
@@ -158,6 +162,8 @@ func (l *SwarmListener) connectServiceChannels() {
 					continue
 				}
 				l.SSCache.Delete(ssm.ID)
+				metrics.RecordService(l.SSCache.Len())
+
 				params := GetSwarmServiceMiniRemoveParameters(ssm)
 				paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
 				l.placeOnNotificationChan(l.SSNotificationChan, event.Type, paramsEncoded)
