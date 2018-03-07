@@ -4,12 +4,13 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // Notification is a node notification
 type Notification struct {
-	eventType  EventType
-	parameters string
+	EventType  EventType
+	Parameters string
 }
 
 // NotifyEndpoint holds Notifiers and channels to watch
@@ -32,10 +33,12 @@ type NotifyDistributing interface {
 // `NotifyEndpoints` are keyed by hostname to send notifications to
 type NotifyDistributor struct {
 	NotifyEndpoints map[string]NotifyEndpoint
+	log             *log.Logger
+	interval        int
 }
 
-func newNotifyDistributor(notifyEndpoints map[string]NotifyEndpoint) *NotifyDistributor {
-	return &NotifyDistributor{NotifyEndpoints: notifyEndpoints}
+func newNotifyDistributor(notifyEndpoints map[string]NotifyEndpoint, interval int, logger *log.Logger) *NotifyDistributor {
+	return &NotifyDistributor{NotifyEndpoints: notifyEndpoints, interval: interval, log: logger}
 }
 
 func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nodeCreateAddrs, nodeRemoveAddrs string, retries, interval int, logger *log.Logger) *NotifyDistributor {
@@ -75,7 +78,7 @@ func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nod
 		notifyEndpoints[hostname] = ep
 	}
 
-	return newNotifyDistributor(notifyEndpoints)
+	return newNotifyDistributor(notifyEndpoints, interval, logger)
 }
 
 func insertAddrStringIntoMap(tempEP map[string]map[string]string, key, addrs string) {
@@ -84,14 +87,14 @@ func insertAddrStringIntoMap(tempEP map[string]map[string]string, key, addrs str
 		if err != nil {
 			continue
 		}
-		hostname := urlObj.Host
-		if len(hostname) == 0 {
+		host := urlObj.Host
+		if len(host) == 0 {
 			continue
 		}
-		if tempEP[hostname] == nil {
-			tempEP[hostname] = map[string]string{}
+		if tempEP[host] == nil {
+			tempEP[host] = map[string]string{}
 		}
-		tempEP[hostname][key] = v
+		tempEP[host][key] = v
 	}
 }
 
@@ -100,17 +103,95 @@ func NewNotifyDistributorFromEnv() *NotifyDistributor {
 	return nil
 }
 
-// Run starts distributor
-func (n NotifyDistributor) Run(serviceChan <-chan Notification, nodeChan <-chan Notification) {
+// Run starts the distributor
+func (d NotifyDistributor) Run(serviceChan <-chan Notification, nodeChan <-chan Notification) {
 
+	for _, endpoint := range d.NotifyEndpoints {
+		go d.watchChannels(endpoint)
+	}
+	if serviceChan != nil {
+		go func() {
+			for n := range serviceChan {
+				for _, endpoint := range d.NotifyEndpoints {
+					endpoint.ServiceChan <- n
+				}
+			}
+		}()
+	}
+	if nodeChan != nil {
+		go func() {
+			for n := range nodeChan {
+				for _, endpoint := range d.NotifyEndpoints {
+					endpoint.NodeChan <- n
+				}
+			}
+		}()
+	}
+}
+
+func (d NotifyDistributor) watchChannels(endpoint NotifyEndpoint) {
+	for {
+		select {
+		case n := <-endpoint.ServiceChan:
+			if n.EventType == EventTypeCreate {
+				err := endpoint.ServiceNotifier.Create(n.Parameters)
+				if err != nil {
+					d.log.Printf("ServiceCreateNotify Error: addr: %s, params: %s back on queue", endpoint.ServiceNotifier.GetCreateAddr(), n.Parameters)
+					go func() {
+						time.Sleep(time.Second * time.Duration(d.interval))
+						endpoint.ServiceChan <- n
+					}()
+				}
+			} else if n.EventType == EventTypeRemove {
+				err := endpoint.ServiceNotifier.Remove(n.Parameters)
+				if err != nil {
+					d.log.Printf("ServiceRemoveNotify Error: addr: %s, params: %s back on queue", endpoint.ServiceNotifier.GetRemoveAddr(), n.Parameters)
+					go func() {
+						time.Sleep(time.Second * time.Duration(d.interval))
+						endpoint.ServiceChan <- n
+					}()
+				}
+			}
+		case n := <-endpoint.NodeChan:
+			if n.EventType == EventTypeCreate {
+				err := endpoint.NodeNotifier.Create(n.Parameters)
+				if err != nil {
+					d.log.Printf("NodeCreateNotify Error: addr: %s placing %s back on queue", endpoint.NodeNotifier.GetCreateAddr(), n.Parameters)
+					go func() {
+						time.Sleep(time.Second * time.Duration(d.interval))
+						endpoint.NodeChan <- n
+					}()
+				}
+			} else if n.EventType == EventTypeRemove {
+				err := endpoint.NodeNotifier.Remove(n.Parameters)
+				if err != nil {
+					d.log.Printf("NodeRemoveNotify Error: addr: %s, params: %s back on queue", endpoint.NodeNotifier.GetRemoveAddr(), n.Parameters)
+					go func() {
+						time.Sleep(time.Second * time.Duration(d.interval))
+						endpoint.NodeChan <- n
+					}()
+				}
+			}
+		}
+	}
 }
 
 // HasServiceListeners when there exists service listeners
-func (n NotifyDistributor) HasServiceListeners() bool {
+func (d NotifyDistributor) HasServiceListeners() bool {
+	for _, endpoint := range d.NotifyEndpoints {
+		if endpoint.ServiceNotifier != nil {
+			return true
+		}
+	}
 	return false
 }
 
 // HasNodeListeners when there exists node listeners
-func (n NotifyDistributor) HasNodeListeners() bool {
+func (d NotifyDistributor) HasNodeListeners() bool {
+	for _, endpoint := range d.NotifyEndpoints {
+		if endpoint.NodeNotifier != nil {
+			return true
+		}
+	}
 	return false
 }
