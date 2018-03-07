@@ -39,7 +39,7 @@ func newNotifyDistributor(notifyEndpoints map[string]NotifyEndpoint) *NotifyDist
 }
 
 func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nodeCreateAddrs, nodeRemoveAddrs string, retries, interval int, logger *log.Logger) *NotifyDistributor {
-	tempNotifyEP := map[string]map[string][]string{}
+	tempNotifyEP := map[string]map[string]string{}
 
 	insertAddrStringIntoMap(tempNotifyEP, "createService", serviceCreateAddrs)
 	insertAddrStringIntoMap(tempNotifyEP, "removeService", serviceRemoveAddrs)
@@ -50,7 +50,7 @@ func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nod
 
 	for hostname, addrMap := range tempNotifyEP {
 		ep := NotifyEndpoint{}
-		if addrMap["createService"] != nil || addrMap["removeService"] != nil {
+		if len(addrMap["createService"]) > 0 || len(addrMap["removeService"]) > 0 {
 			ep.ServiceChan = make(chan Notification)
 			ep.ServiceNotifier = NewNotifier(
 				addrMap["createService"],
@@ -61,7 +61,7 @@ func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nod
 				logger,
 			)
 		}
-		if addrMap["createNode"] != nil || addrMap["removeNode"] != nil {
+		if len(addrMap["createNode"]) > 0 || len(addrMap["removeNode"]) > 0 {
 			ep.NodeChan = make(chan Notification)
 			ep.NodeNotifier = NewNotifier(
 				addrMap["createNode"],
@@ -78,23 +78,20 @@ func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nod
 	return newNotifyDistributor(notifyEndpoints)
 }
 
-func insertAddrStringIntoMap(tempEP map[string]map[string][]string, key, addrs string) {
+func insertAddrStringIntoMap(tempEP map[string]map[string]string, key, addrs string) {
 	for _, v := range strings.Split(addrs, ",") {
 		urlObj, err := url.Parse(v)
 		if err != nil {
 			continue
 		}
-		hostname := urlObj.Hostname()
+		hostname := urlObj.Host
 		if len(hostname) == 0 {
 			continue
 		}
 		if tempEP[hostname] == nil {
-			tempEP[hostname] = map[string][]string{}
+			tempEP[hostname] = map[string]string{}
 		}
-		if tempEP[hostname][key] == nil {
-			tempEP[hostname][key] = []string{}
-		}
-		tempEP[hostname][key] = append(tempEP[hostname][key], v)
+		tempEP[hostname][key] = v
 	}
 }
 
