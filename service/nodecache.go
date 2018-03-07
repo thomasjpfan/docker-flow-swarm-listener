@@ -3,7 +3,8 @@ package service
 // NodeCacher caches sevices
 type NodeCacher interface {
 	InsertAndCheck(n NodeMini) bool
-	GetAndRemove(ID string) (NodeMini, bool)
+	Delete(ID string)
+	Get(ID string) (NodeMini, bool)
 }
 
 // NodeCache implements `NodeCacher`
@@ -28,16 +29,9 @@ func (c *NodeCache) InsertAndCheck(n NodeMini) bool {
 	return !ok || !n.Equal(cachedNode)
 }
 
-// GetAndRemove removes `NodeMini` from cache
-// If node was in cache, return the corresponding `NodeMini`,
-// remove from cache, and return true
-// If node is not in cache, return false
-func (c *NodeCache) GetAndRemove(ID string) (NodeMini, bool) {
-	if cachedNode, ok := c.cache[ID]; ok {
-		delete(c.cache, ID)
-		return cachedNode, true
-	}
-	return NodeMini{}, false
+// Delete removes node from cache
+func (c *NodeCache) Delete(ID string) {
+	delete(c.cache, ID)
 }
 
 // Get gets node from cache

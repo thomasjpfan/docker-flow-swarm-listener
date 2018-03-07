@@ -151,16 +151,16 @@ func (s *NodeCacheTestSuite) Test_GetAndRemove_InCache_ReturnsNodeMini_RemovesFr
 	s.True(isUpdated)
 	s.AssertInCache(s.NMini)
 
-	removedNMini, ok := s.Cache.GetAndRemove(s.NMini.ID)
+	removedNMini, ok := s.Cache.Get(s.NMini.ID)
 	s.True(ok)
+	s.Cache.Delete(s.NMini.ID)
 	s.AssertNotInCache(s.NMini)
 	s.Equal(s.NMini, removedNMini)
 }
 
 func (s *NodeCacheTestSuite) Test_GetAndRemove_NotInCache_ReturnsFalse() {
-	_, ok := s.Cache.GetAndRemove(s.NMini.ID)
+	_, ok := s.Cache.Get(s.NMini.ID)
 	s.False(ok)
-	s.AssertNotInCache(s.NMini)
 }
 
 func (s *NodeCacheTestSuite) AssertInCache(nm NodeMini) {

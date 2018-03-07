@@ -15,10 +15,9 @@ import (
 
 type NotifierTestSuite struct {
 	suite.Suite
-	Logger       *log.Logger
-	LogBytes     *bytes.Buffer
-	CreateValues url.Values
-	RemoveValues url.Values
+	Logger   *log.Logger
+	LogBytes *bytes.Buffer
+	Params   string
 }
 
 func TestNotifierUnitTestSuite(t *testing.T) {
@@ -30,12 +29,9 @@ func (s *NotifierTestSuite) SetupSuite() {
 	s.Logger = log.New(s.LogBytes, "", 0)
 
 	cParams := url.Values{}
-	cParams.Add("replicas", "3")
 	cParams.Add("serviceName", "hello")
-	s.CreateValues = cParams
+	s.Params = cParams.Encode()
 
-	rParams := url.Values{}
-	rParams.Add("serviceName", "hello")
 }
 
 func (s *NotifierTestSuite) TearDownTest() {
@@ -46,7 +42,7 @@ func (s *NotifierTestSuite) TearDownTest() {
 
 func (s *NotifierTestSuite) Test_Create_SendsRequests() {
 
-	var query1, query2 url.Values
+	var query1, query2 string
 	httpSrv := httptest.NewServer(http.HandlerFunc(func(
 		w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
@@ -54,11 +50,11 @@ func (s *NotifierTestSuite) Test_Create_SendsRequests() {
 			case "/v1/docker-flow-proxy/reconfigure":
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
-				query1 = r.URL.Query()
+				query1 = r.URL.Query().Encode()
 			case "/something/else":
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
-				query2 = r.URL.Query()
+				query2 = r.URL.Query().Encode()
 			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -70,19 +66,20 @@ func (s *NotifierTestSuite) Test_Create_SendsRequests() {
 	url2 := fmt.Sprintf("%s/something/else", httpSrv.URL)
 
 	n := NewNotifier([]string{url1, url2}, []string{}, "service", 5, 1, s.Logger)
-	err := n.Create(s.CreateValues)
+	s.Equal([]string{url1, url2}, n.GetCreateAddrs())
+	err := n.Create(s.Params)
 	s.Require().NoError(err)
 
-	s.EqualURLValues(s.CreateValues, query1)
-	s.EqualURLValues(s.CreateValues, query2)
+	s.Equal(s.Params, query1)
+	s.Equal(s.Params, query2)
 
 	urlObj1, err := url.Parse(url1)
 	s.Require().NoError(err)
 	urlObj2, err := url.Parse(url2)
 	s.Require().NoError(err)
 
-	urlObj1.RawQuery = s.CreateValues.Encode()
-	urlObj2.RawQuery = s.CreateValues.Encode()
+	urlObj1.RawQuery = s.Params
+	urlObj2.RawQuery = s.Params
 
 	logMsgs := s.LogBytes.String()
 	s.Contains(logMsgs, fmt.Sprintf("Sending service created notification to %s", urlObj1.String()))
@@ -91,7 +88,7 @@ func (s *NotifierTestSuite) Test_Create_SendsRequests() {
 
 func (s *NotifierTestSuite) Test_Create_ReturnsAndLogsError_WhenUrlCannotBeParsed() {
 	n := NewNotifier([]string{"%%%"}, []string{}, "service", 5, 1, s.Logger)
-	err := n.Create(s.CreateValues)
+	err := n.Create(s.Params)
 	s.Error(err)
 
 	logMsgs := s.LogBytes.String()
@@ -106,7 +103,7 @@ func (s *NotifierTestSuite) Test_Create_ReturnsAndLogsError_WhenHttpStatusIsNot2
 
 	n := NewNotifier(
 		[]string{httpSrv.URL}, []string{}, "node", 1, 0, s.Logger)
-	err := n.Create(s.CreateValues)
+	err := n.Create(s.Params)
 	s.Error(err)
 
 	logMsgs := s.LogBytes.String()
@@ -121,7 +118,7 @@ func (s *NotifierTestSuite) Test_Create_ReturnsNoError_WhenHttpStatusIs409() {
 
 	n := NewNotifier(
 		[]string{httpSrv.URL}, []string{}, "node", 1, 0, s.Logger)
-	err := n.Create(s.CreateValues)
+	err := n.Create(s.Params)
 	s.Require().NoError(err)
 }
 
@@ -129,7 +126,7 @@ func (s *NotifierTestSuite) Test_Create_ReturnsAndLogsError_WhenHttpRequestError
 	n := NewNotifier(
 		[]string{"this-does-not-exist"}, []string{}, "node", 2, 1, s.Logger)
 
-	err := n.Create(s.CreateValues)
+	err := n.Create(s.Params)
 	s.Require().Error(err)
 
 	logMsgs := s.LogBytes.String()
@@ -150,7 +147,7 @@ func (s *NotifierTestSuite) Test_Create_RetriesRequests() {
 
 	n := NewNotifier(
 		[]string{httpSrv.URL}, []string{}, "service", 2, 1, s.Logger)
-	n.Create(s.CreateValues)
+	n.Create(s.Params)
 
 	s.Equal(2, attempt)
 
@@ -162,7 +159,7 @@ func (s *NotifierTestSuite) Test_Create_RetriesRequests() {
 // Remove
 
 func (s *NotifierTestSuite) Test_Remove_SendsRequests() {
-	var query1, query2 url.Values
+	var query1, query2 string
 
 	httpSrv := httptest.NewServer(http.HandlerFunc(func(
 		w http.ResponseWriter, r *http.Request) {
@@ -171,11 +168,11 @@ func (s *NotifierTestSuite) Test_Remove_SendsRequests() {
 			case "/v1/docker-flow-proxy/remove":
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
-				query1 = r.URL.Query()
+				query1 = r.URL.Query().Encode()
 			case "/something/else":
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
-				query2 = r.URL.Query()
+				query2 = r.URL.Query().Encode()
 			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -187,19 +184,20 @@ func (s *NotifierTestSuite) Test_Remove_SendsRequests() {
 	url2 := fmt.Sprintf("%s/something/else", httpSrv.URL)
 
 	n := NewNotifier([]string{}, []string{url1, url2}, "node", 5, 1, s.Logger)
-	err := n.Remove(s.RemoveValues)
+	s.Equal([]string{url1, url2}, n.GetRemoveAddrs())
+	err := n.Remove(s.Params)
 	s.Require().NoError(err)
 
-	s.EqualURLValues(s.RemoveValues, query1)
-	s.EqualURLValues(s.RemoveValues, query2)
+	s.Equal(s.Params, query1)
+	s.Equal(s.Params, query2)
 
 	urlObj1, err := url.Parse(url1)
 	s.Require().NoError(err)
 	urlObj2, err := url.Parse(url2)
 	s.Require().NoError(err)
 
-	urlObj1.RawQuery = s.RemoveValues.Encode()
-	urlObj2.RawQuery = s.RemoveValues.Encode()
+	urlObj1.RawQuery = s.Params
+	urlObj2.RawQuery = s.Params
 
 	logMsgs := s.LogBytes.String()
 	s.Contains(logMsgs, fmt.Sprintf("Sending node removed notification to %s", urlObj1.String()))
@@ -208,7 +206,7 @@ func (s *NotifierTestSuite) Test_Remove_SendsRequests() {
 
 func (s *NotifierTestSuite) Test_Remove_ReturnsAndLogsError_WhenUrlCannotBeParsed() {
 	n := NewNotifier([]string{}, []string{"%%%"}, "node", 5, 1, s.Logger)
-	err := n.Remove(s.RemoveValues)
+	err := n.Remove(s.Params)
 	s.Error(err)
 
 	logMsgs := s.LogBytes.String()
@@ -223,7 +221,7 @@ func (s *NotifierTestSuite) Test_Remove_ReturnsAndLogsError_WhenHttpStatusIsNot2
 
 	n := NewNotifier(
 		[]string{}, []string{httpSrv.URL}, "service", 1, 0, s.Logger)
-	err := n.Remove(s.RemoveValues)
+	err := n.Remove(s.Params)
 	s.Error(err)
 
 	logMsgs := s.LogBytes.String()
@@ -233,7 +231,7 @@ func (s *NotifierTestSuite) Test_Remove_ReturnsAndLogsError_WhenHttpStatusIsNot2
 func (s *NotifierTestSuite) Test_Remove_ReturnsAndLogsError_WhenHttpRequestReturnsError() {
 	n := NewNotifier(
 		[]string{}, []string{"this-does-not-exist"}, "service", 2, 1, s.Logger)
-	err := n.Remove(s.RemoveValues)
+	err := n.Remove(s.Params)
 	s.Error(err)
 
 	logMsgs := s.LogBytes.String()
@@ -254,7 +252,7 @@ func (s *NotifierTestSuite) Test_Remove_RetriesRequests() {
 
 	n := NewNotifier(
 		[]string{}, []string{httpSrv.URL}, "node", 2, 1, s.Logger)
-	err := n.Remove(s.RemoveValues)
+	err := n.Remove(s.Params)
 	s.Require().NoError(err)
 
 	s.Equal(2, attempt)

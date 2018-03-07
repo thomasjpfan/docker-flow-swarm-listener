@@ -3,7 +3,8 @@ package service
 // SwarmServiceCacher caches sevices
 type SwarmServiceCacher interface {
 	InsertAndCheck(ss SwarmServiceMini) bool
-	GetAndRemove(ID string) (SwarmServiceMini, bool)
+	Delete(ID string)
+	Get(ID string) (SwarmServiceMini, bool)
 }
 
 // SwarmServiceCache implements `SwarmServiceCacher`
@@ -29,16 +30,9 @@ func (c *SwarmServiceCache) InsertAndCheck(ss SwarmServiceMini) bool {
 
 }
 
-// GetAndRemove removes `SwarmServiceMini` from cache
-// If service was in cache, return the corresponding `SwarmServiceMini`,
-// remove from cache, and return true
-// If service is not in cache, return false
-func (c *SwarmServiceCache) GetAndRemove(ID string) (SwarmServiceMini, bool) {
-	if cachedService, ok := c.cache[ID]; ok {
-		delete(c.cache, ID)
-		return cachedService, true
-	}
-	return SwarmServiceMini{}, false
+// Delete delets service from cache
+func (c *SwarmServiceCache) Delete(ID string) {
+	delete(c.cache, ID)
 }
 
 // Get gets service from cache

@@ -1,13 +1,15 @@
 package service
 
 import (
+	"log"
 	"net/url"
+	"strings"
 )
 
 // Notification is a node notification
 type Notification struct {
-	eventType EventType
-	urlValues url.Values
+	eventType  EventType
+	parameters string
 }
 
 // NotifyEndpoint holds Notifiers and channels to watch
@@ -26,13 +28,74 @@ type NotifyDistributing interface {
 	HasNodeListeners() bool
 }
 
-// NotifyDistributor distributes service and node notifications to `NotifyEnpoint`s
+// NotifyDistributor distributes service and node notifications to `NotifyEndpoints`
+// `NotifyEndpoints` are keyed by hostname to send notifications to
 type NotifyDistributor struct {
 	NotifyEndpoints map[string]NotifyEndpoint
 }
 
 func newNotifyDistributor(notifyEndpoints map[string]NotifyEndpoint) *NotifyDistributor {
 	return &NotifyDistributor{NotifyEndpoints: notifyEndpoints}
+}
+
+func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nodeCreateAddrs, nodeRemoveAddrs string, retries, interval int, logger *log.Logger) *NotifyDistributor {
+	tempNotifyEP := map[string]map[string][]string{}
+
+	insertAddrStringIntoMap(tempNotifyEP, "createService", serviceCreateAddrs)
+	insertAddrStringIntoMap(tempNotifyEP, "removeService", serviceRemoveAddrs)
+	insertAddrStringIntoMap(tempNotifyEP, "createNode", nodeCreateAddrs)
+	insertAddrStringIntoMap(tempNotifyEP, "removeNode", nodeRemoveAddrs)
+
+	notifyEndpoints := map[string]NotifyEndpoint{}
+
+	for hostname, addrMap := range tempNotifyEP {
+		ep := NotifyEndpoint{}
+		if addrMap["createService"] != nil || addrMap["removeService"] != nil {
+			ep.ServiceChan = make(chan Notification)
+			ep.ServiceNotifier = NewNotifier(
+				addrMap["createService"],
+				addrMap["removeService"],
+				"service",
+				retries,
+				interval,
+				logger,
+			)
+		}
+		if addrMap["createNode"] != nil || addrMap["removeNode"] != nil {
+			ep.NodeChan = make(chan Notification)
+			ep.NodeNotifier = NewNotifier(
+				addrMap["createNode"],
+				addrMap["removeNode"],
+				"node",
+				retries,
+				interval,
+				logger,
+			)
+		}
+		notifyEndpoints[hostname] = ep
+	}
+
+	return newNotifyDistributor(notifyEndpoints)
+}
+
+func insertAddrStringIntoMap(tempEP map[string]map[string][]string, key, addrs string) {
+	for _, v := range strings.Split(addrs, ",") {
+		urlObj, err := url.Parse(v)
+		if err != nil {
+			continue
+		}
+		hostname := urlObj.Hostname()
+		if len(hostname) == 0 {
+			continue
+		}
+		if tempEP[hostname] == nil {
+			tempEP[hostname] = map[string][]string{}
+		}
+		if tempEP[hostname][key] == nil {
+			tempEP[hostname][key] = []string{}
+		}
+		tempEP[hostname][key] = append(tempEP[hostname][key], v)
+	}
 }
 
 // NewNotifyDistributorFromEnv creates `NotifyDistributor` from environment variables
