@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 )
 
 // Notification is a node notification
@@ -157,40 +156,24 @@ func (d NotifyDistributor) watchChannels(endpoint NotifyEndpoint) {
 			if n.EventType == EventTypeCreate {
 				err := endpoint.ServiceNotifier.Create(n.Parameters)
 				if err != nil {
-					d.log.Printf("ServiceCreateNotify Error: addr: %s, params: %s back on queue", endpoint.ServiceNotifier.GetCreateAddr(), n.Parameters)
-					go func() {
-						time.Sleep(time.Second * time.Duration(d.interval))
-						endpoint.ServiceChan <- n
-					}()
+					d.log.Printf("ERROR: Unable to send ServiceCreateNotify to %s, params: %s", endpoint.ServiceNotifier.GetCreateAddr(), n.Parameters)
 				}
 			} else if n.EventType == EventTypeRemove {
 				err := endpoint.ServiceNotifier.Remove(n.Parameters)
 				if err != nil {
-					d.log.Printf("ServiceRemoveNotify Error: addr: %s, params: %s back on queue", endpoint.ServiceNotifier.GetRemoveAddr(), n.Parameters)
-					go func() {
-						time.Sleep(time.Second * time.Duration(d.interval))
-						endpoint.ServiceChan <- n
-					}()
+					d.log.Printf("ERROR: Unable to send ServiceRemoveNotify to %s, params: %s", endpoint.ServiceNotifier.GetRemoveAddr(), n.Parameters)
 				}
 			}
 		case n := <-endpoint.NodeChan:
 			if n.EventType == EventTypeCreate {
 				err := endpoint.NodeNotifier.Create(n.Parameters)
 				if err != nil {
-					d.log.Printf("NodeCreateNotify Error: addr: %s placing %s back on queue", endpoint.NodeNotifier.GetCreateAddr(), n.Parameters)
-					go func() {
-						time.Sleep(time.Second * time.Duration(d.interval))
-						endpoint.NodeChan <- n
-					}()
+					d.log.Printf("ERROR: Unable to send NodeCreateNotify to %s, params: %s", endpoint.NodeNotifier.GetCreateAddr(), n.Parameters)
 				}
 			} else if n.EventType == EventTypeRemove {
 				err := endpoint.NodeNotifier.Remove(n.Parameters)
 				if err != nil {
-					d.log.Printf("NodeRemoveNotify Error: addr: %s, params: %s back on queue", endpoint.NodeNotifier.GetRemoveAddr(), n.Parameters)
-					go func() {
-						time.Sleep(time.Second * time.Duration(d.interval))
-						endpoint.NodeChan <- n
-					}()
+					d.log.Printf("ERROR: Unable to send NodeRemoveNotify to %s, params: %s", endpoint.NodeNotifier.GetRemoveAddr(), n.Parameters)
 				}
 			}
 		}

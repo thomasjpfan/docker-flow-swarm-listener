@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -433,110 +432,6 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 
 	nodesNotifyMock1.AssertExpectations(s.T())
 	nodesNotifyMock2.AssertExpectations(s.T())
-}
-
-func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints_Nodes_OnError_PutsbackNotificationOnQueue() {
-	mockCreate := make(chan struct{})
-	numOfCalls := 0
-	err := fmt.Errorf("Nope")
-
-	nodesNotifyMock := notificationSenderMock{}
-	nodesNotifyMock.On("Create", "hello=world2").Return(err).Run(func(args mock.Arguments) {
-		numOfCalls++
-		if numOfCalls == 2 {
-			mockCreate <- struct{}{}
-		}
-	})
-	nodesNotifyMock.On("GetCreateAddr").Return("http://host1/create")
-
-	endpoints := map[string]NotifyEndpoint{
-		"host1": NotifyEndpoint{
-			ServiceChan:     nil,
-			ServiceNotifier: nil,
-			NodeChan:        make(chan Notification),
-			NodeNotifier:    &nodesNotifyMock,
-		},
-	}
-	notifyD := newNotifyDistributor(endpoints, 1, s.log)
-	nodeChan := make(chan Notification)
-
-	notifyD.Run(nil, nodeChan)
-
-	go func() {
-		nodeChan <- Notification{
-			EventType:  EventTypeCreate,
-			Parameters: "hello=world2",
-		}
-	}()
-
-	timer := time.NewTimer(time.Second * 5).C
-
-	for {
-		if mockCreate == nil {
-			break
-		}
-		select {
-		case <-mockCreate:
-			mockCreate = nil
-		case <-timer:
-			s.Fail("Timeout")
-			return
-		}
-	}
-
-	s.Equal(2, numOfCalls)
-}
-
-func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints_Service_OnError_PutsbackNotificationOnQueue() {
-	mockRemove := make(chan struct{})
-	numOfCalls := 0
-	err := fmt.Errorf("Nope")
-
-	serviceNotifyMock := notificationSenderMock{}
-	serviceNotifyMock.On("Remove", "hello=world2").Return(err).Run(func(args mock.Arguments) {
-		numOfCalls++
-		if numOfCalls == 2 {
-			mockRemove <- struct{}{}
-		}
-	})
-	serviceNotifyMock.On("GetRemoveAddr").Return("http://host1/remove")
-
-	endpoints := map[string]NotifyEndpoint{
-		"host1": NotifyEndpoint{
-			ServiceChan:     make(chan Notification),
-			ServiceNotifier: &serviceNotifyMock,
-			NodeChan:        nil,
-			NodeNotifier:    nil,
-		},
-	}
-	notifyD := newNotifyDistributor(endpoints, 1, s.log)
-	serviceChan := make(chan Notification)
-
-	notifyD.Run(serviceChan, nil)
-
-	go func() {
-		serviceChan <- Notification{
-			EventType:  EventTypeRemove,
-			Parameters: "hello=world2",
-		}
-	}()
-
-	timer := time.NewTimer(time.Second * 5).C
-
-	for {
-		if mockRemove == nil {
-			break
-		}
-		select {
-		case <-mockRemove:
-			mockRemove = nil
-		case <-timer:
-			s.Fail("Timeout")
-			return
-		}
-	}
-
-	s.Equal(2, numOfCalls)
 }
 
 func (s *NotifyDistributorTestSuite) AssertEndpoints(endpoint NotifyEndpoint, serviceCreateAddr, serviceRemoveAddr, nodeCreateAddr, nodeRemoveAddr string) {
