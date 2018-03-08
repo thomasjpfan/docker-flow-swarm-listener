@@ -10,5 +10,6 @@ The following environment variables can be used when creating the `swarm-listene
 |DF_NOTIFY_REMOVE_SERVICE_URL|Comma separated list of URLs that will be used to send notification requests when a service is removed.<br>**Example**: `url1,url2`|
 |DF_INTERVAL        |Interval (in seconds) between service discovery requests<br>**Default**: `5`<br>**Example**: `10`|
 |DF_RETRY           |Number of notification request retries<br>**Default**: `50`<br>**Example**: `100`|
-|DF_RETRY_INTERVAL  |Interval (in seconds) between notification request retries<br>**Default**: `5`<br>**Example**: `10`|
 |DF_INCLUDE_NODE_IP_INFO|Include node and ip information for service in notification.<br>**Default**:`false`|
+|DF_NOTIFY_CREATE_NODE_URL |Comma separated list of URLs that will be used to send notification requests when a node is created or updated.<br>**Example**: `url1,url2`|
+|DF_NOTIFY_REMOVE_NODE_URL |Comma separated list of URLs that will be used to send notification requests when a node is remove.<br>**Example**: `url1,url2`|
