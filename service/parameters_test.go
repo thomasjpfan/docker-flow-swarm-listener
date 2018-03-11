@@ -23,6 +23,7 @@ func (s *ParametersTestSuite) Test_GetNodeMiniCreateParameters_DistributeUndefin
 	expected := map[string]string{
 		"id":           "nodeID",
 		"hostname":     "nodehostname",
+		"address":      "nodeaddr",
 		"versionIndex": "10",
 		"state":        "ready",
 		"role":         "worker",
@@ -44,6 +45,7 @@ func (s *ParametersTestSuite) Test_GetNodeMiniCreateParameters_LabelsTakeSecondP
 	expected := map[string]string{
 		"id":           "nodeID",
 		"hostname":     "nodehostname",
+		"address":      "nodeaddr",
 		"versionIndex": "10",
 		"state":        "ready",
 		"role":         "manager",
@@ -64,6 +66,7 @@ func (s *ParametersTestSuite) Test_GetNodeMiniCreateParameters_NodeLabelsHigherP
 	expected := map[string]string{
 		"id":           "nodeID",
 		"hostname":     "nodehostname",
+		"address":      "nodeaddr",
 		"versionIndex": "10",
 		"state":        "ready",
 		"role":         "worker",
@@ -83,6 +86,7 @@ func (s *ParametersTestSuite) Test_GetNodeMiniRemoveParameters() {
 	expected := map[string]string{
 		"id":       "nodeID",
 		"hostname": "nodehostname",
+		"address":  "nodeaddr",
 	}
 	params := GetNodeMiniRemoveParameters(nm)
 	s.Equal(expected, params)

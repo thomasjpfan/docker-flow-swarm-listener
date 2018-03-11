@@ -33,6 +33,7 @@ func GetNodeMiniCreateParameters(node NodeMini) map[string]string {
 
 	params["id"] = node.ID
 	params["hostname"] = node.Hostname
+	params["address"] = node.Addr
 	params["versionIndex"] = fmt.Sprintf("%d", node.VersionIndex)
 	params["state"] = string(node.State)
 	params["role"] = string(node.Role)
@@ -83,6 +84,7 @@ func GetNodeMiniRemoveParameters(node NodeMini) map[string]string {
 	params := map[string]string{}
 	params["id"] = node.ID
 	params["hostname"] = node.Hostname
+	params["address"] = node.Addr
 
 	return params
 }

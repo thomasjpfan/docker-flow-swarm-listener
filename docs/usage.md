@@ -26,6 +26,7 @@ When a node is created or updated a notification will be sent to **[DF_NOTIFY_CR
 |-------|-------------|---------|
 | id    | The ID of node given by docker | `2pe2xpkrx780xrhujws42a73w` |
 | hostname | Hostname of node | `ap1.hostname.com` |
+| address  | Address of node | `10.0.0.1` |
 | versionIndex | The version index of node | `24` |
 | state | State of node. [`unknown`, `down`, `ready`, `disconnected`] | `down` |
 | role | Role of node. [`worker`, `manager`] | `worker` |
@@ -33,7 +34,7 @@ When a node is created or updated a notification will be sent to **[DF_NOTIFY_CR
 
 All service labels prefixed by `com.df.` will be added to the notification. For example, a node with label `com.df.hello=world` will translate to parameter: `hello=world`.
 
-When a node is removed, a notification will be sent to **[DF_NOTIFY_REMOVE_NODE_URl]**. Only the `id` and `hostnamae` parameters are included.
+When a node is removed, a notification will be sent to **[DF_NOTIFY_REMOVE_NODE_URl]**. Only the `id`, `hostname`, and `address` parameters are included.
 
 ## API
 
