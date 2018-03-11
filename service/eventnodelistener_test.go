@@ -21,7 +21,7 @@ type EventListenerNodeTestSuite struct {
 	Node0JoinToken string
 }
 
-func TestEventListenerNodeUnitTestSuite(t *testing.T) {
+func TestEventListenerNodeTestSuite(t *testing.T) {
 	suite.Run(t, new(EventListenerNodeTestSuite))
 }
 

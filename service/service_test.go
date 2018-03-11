@@ -17,7 +17,7 @@ type SwarmServiceClientTestSuite struct {
 	Util4ID string
 }
 
-func TestSwarmServiceClientUnitTestSuite(t *testing.T) {
+func TestSwarmServiceClientTestSuite(t *testing.T) {
 	suite.Run(t, new(SwarmServiceClientTestSuite))
 }
 

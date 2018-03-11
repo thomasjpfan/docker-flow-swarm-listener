@@ -13,7 +13,7 @@ type ParametersTestSuite struct {
 	suite.Suite
 }
 
-func TestParametersTestSuite(t *testing.T) {
+func TestParametersUnitTestSuite(t *testing.T) {
 	suite.Run(t, new(ParametersTestSuite))
 }
 

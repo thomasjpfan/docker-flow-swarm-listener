@@ -13,7 +13,7 @@ type NodeInspectorTestSuite struct {
 	NClient *NodeClient
 }
 
-func TestNodeInspectorUnitTestSuite(t *testing.T) {
+func TestNodeInspectorTestSuite(t *testing.T) {
 	suite.Run(t, new(NodeInspectorTestSuite))
 }
 
