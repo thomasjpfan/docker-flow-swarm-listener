@@ -131,20 +131,6 @@ func (s *NodeCacheTestSuite) Test_InsertAndCheck_ChangeAvailability_ReturnsTrue(
 	s.AssertInCache(newNMini)
 }
 
-func (s *NodeCacheTestSuite) Test_InsertAndCheck_ChangeIndexVersion_ReturnsTrue() {
-
-	isUpdated := s.Cache.InsertAndCheck(s.NMini)
-	s.True(isUpdated)
-	s.AssertInCache(s.NMini)
-
-	newNMini := getNewNodeMini()
-	newNMini.VersionIndex = uint64(4)
-
-	isUpdated = s.Cache.InsertAndCheck(newNMini)
-	s.True(isUpdated)
-	s.AssertInCache(newNMini)
-}
-
 func (s *NodeCacheTestSuite) Test_GetAndRemove_InCache_ReturnsNodeMini_RemovesFromCache() {
 
 	isUpdated := s.Cache.InsertAndCheck(s.NMini)
