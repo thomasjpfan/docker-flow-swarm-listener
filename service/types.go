@@ -44,7 +44,6 @@ type NodeMini struct {
 func (ns NodeMini) Equal(other NodeMini) bool {
 	return (ns.ID == other.ID) &&
 		(ns.Hostname == other.Hostname) &&
-		(ns.VersionIndex == other.VersionIndex) &&
 		(ns.State == other.State) &&
 		(ns.Addr == other.Addr) &&
 		EqualMapStringString(ns.NodeLabels, other.NodeLabels) &&
