@@ -31,10 +31,6 @@ func GetNodeMiniCreateParameters(node NodeMini) map[string]string {
 		}
 	}
 
-	if _, ok := params["distribute"]; !ok {
-		params["distribute"] = "true"
-	}
-
 	params["id"] = node.ID
 	params["hostname"] = node.Hostname
 	params["versionIndex"] = fmt.Sprintf("%d", node.VersionIndex)
@@ -88,15 +84,6 @@ func GetNodeMiniRemoveParameters(node NodeMini) map[string]string {
 	params["id"] = node.ID
 	params["hostname"] = node.Hostname
 
-	if v, ok := node.EngineLabels["com.df.distribute"]; ok {
-		params["distribute"] = v
-	}
-	if v, ok := node.NodeLabels["com.df.distribute"]; ok {
-		params["distribute"] = v
-	}
-	if _, ok := params["distribute"]; !ok {
-		params["distribute"] = "true"
-	}
 	return params
 }
 

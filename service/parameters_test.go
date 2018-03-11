@@ -29,27 +29,6 @@ func (s *ParametersTestSuite) Test_GetNodeMiniCreateParameters_DistributeUndefin
 		"availability": "active",
 		"world":        "round",
 		"wow":          "yup",
-		"distribute":   "true",
-	}
-
-	params := GetNodeMiniCreateParameters(nm)
-	s.Equal(expected, params)
-}
-
-func (s *ParametersTestSuite) Test_GetNodeMiniCreateParameters_DistributeFalse() {
-	nm := getNewNodeMini()
-	nm.NodeLabels["com.df.distribute"] = "false"
-
-	expected := map[string]string{
-		"id":           "nodeID",
-		"hostname":     "nodehostname",
-		"versionIndex": "10",
-		"state":        "ready",
-		"role":         "worker",
-		"availability": "active",
-		"world":        "round",
-		"wow":          "yup",
-		"distribute":   "false",
 	}
 
 	params := GetNodeMiniCreateParameters(nm)
@@ -71,7 +50,6 @@ func (s *ParametersTestSuite) Test_GetNodeMiniCreateParameters_LabelsTakeSecondP
 		"availability": "drain",
 		"world":        "round",
 		"wow":          "yup",
-		"distribute":   "true",
 	}
 	params := GetNodeMiniCreateParameters(nm)
 	s.Equal(expected, params)
@@ -93,7 +71,6 @@ func (s *ParametersTestSuite) Test_GetNodeMiniCreateParameters_NodeLabelsHigherP
 		"world":        "round",
 		"wow":          "yup",
 		"dogs":         "chase",
-		"distribute":   "true",
 	}
 
 	params := GetNodeMiniCreateParameters(nm)
@@ -104,26 +81,13 @@ func (s *ParametersTestSuite) Test_GetNodeMiniRemoveParameters() {
 	nm := getNewNodeMini()
 
 	expected := map[string]string{
-		"id":         "nodeID",
-		"hostname":   "nodehostname",
-		"distribute": "true",
+		"id":       "nodeID",
+		"hostname": "nodehostname",
 	}
 	params := GetNodeMiniRemoveParameters(nm)
 	s.Equal(expected, params)
 }
 
-func (s *ParametersTestSuite) Test_GetNodeMiniRemoveParameters_Distribute_False() {
-	nm := getNewNodeMini()
-	nm.NodeLabels["com.df.distribute"] = "false"
-
-	expected := map[string]string{
-		"id":         "nodeID",
-		"hostname":   "nodehostname",
-		"distribute": "false",
-	}
-	params := GetNodeMiniRemoveParameters(nm)
-	s.Equal(expected, params)
-}
 func (s *ParametersTestSuite) Test_GetSwarmServiceMiniCreateParameters_Global() {
 	ssm := getNewSwarmServiceMini()
 	ssm.Replicas = uint64(0)
