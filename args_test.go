@@ -25,7 +25,6 @@ func TestArgsUnitTestSuite(t *testing.T) {
 func (s *ArgsTestSuite) Test_GetArgs_ReturnsDefaultValues() {
 	args := getArgs()
 
-	s.Equal(5, args.Interval)
 	s.Equal(1, args.Retry)
 	s.Equal(0, args.RetryInterval)
 }
