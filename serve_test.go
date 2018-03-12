@@ -65,7 +65,7 @@ func (s *ServerTestSuite) Test_Run_ReturnsError_WhenHTTPListenAndServeFails() {
 }
 
 func (s *ServerTestSuite) Test_NotifyServices_ReturnsStatus200() {
-	s.SLMock.On("NotifyServices").Return()
+	s.SLMock.On("NotifyServices", false).Return()
 
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-swarm-listener/notify-services", nil)
 	expected, _ := json.Marshal(Response{Status: "OK"})
@@ -86,7 +86,7 @@ func (s *ServerTestSuite) Test_NotifyServices_SetsContentTypeToJSON() {
 		actual = value
 	}
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-swarm-listener/notify-services", nil)
-	s.SLMock.On("NotifyServices").Return()
+	s.SLMock.On("NotifyServices", false).Return()
 
 	srv := NewServe(s.SLMock, s.Log)
 	srv.NotifyServices(s.RWMock, req)
@@ -174,8 +174,11 @@ type SwarmListeningMock struct {
 func (m *SwarmListeningMock) Run() {
 	m.Called()
 }
-func (m *SwarmListeningMock) NotifyServices() {
-	m.Called()
+func (m *SwarmListeningMock) NotifyServices(ignoreCache bool) {
+	m.Called(ignoreCache)
+}
+func (m *SwarmListeningMock) NotifyNodes(ignoreCache bool) {
+	m.Called(ignoreCache)
 }
 func (m *SwarmListeningMock) GetServicesParameters(ctx context.Context) ([]map[string]string, error) {
 	args := m.Called(ctx)

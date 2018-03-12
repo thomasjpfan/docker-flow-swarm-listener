@@ -11,7 +11,8 @@ import (
 // SwarmListening provides public api for interacting with swarm listener
 type SwarmListening interface {
 	Run()
-	NotifyServices()
+	NotifyServices(ignoreCache bool)
+	NotifyNodes(ignoreCache bool)
 	GetServicesParameters(ctx context.Context) ([]map[string]string, error)
 }
 
@@ -206,6 +207,7 @@ func (l *SwarmListener) connectNodeChannels() {
 					continue
 				}
 				l.NodeCache.Delete(nm.ID)
+
 				params := GetNodeMiniRemoveParameters(nm)
 				paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
 				l.placeOnNotificationChan(l.NodeNotificationChan, event.Type, paramsEncoded)
@@ -214,29 +216,75 @@ func (l *SwarmListener) connectNodeChannels() {
 	}()
 }
 
-// NotifyServices places all services on queue to notify services
-// Ignoring the cache
-func (l SwarmListener) NotifyServices() {
+// NotifyServices places all services on queue to notify services on service events
+func (l SwarmListener) NotifyServices(useCache bool) {
 	services, err := l.SSClient.SwarmServiceList(context.Background(), l.IncludeNodeInfo)
 	if err != nil {
 		l.Log.Printf("ERROR: NotifyService, %v", err)
 		return
 	}
-	for _, s := range services {
-		ssm := MinifySwarmService(s, l.IgnoreKey, l.IncludeKey)
-		params := GetSwarmServiceMiniCreateParameters(ssm)
-		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
-		l.placeOnNotificationChan(l.SSNotificationChan, EventTypeCreate, paramsEncoded)
+
+	if useCache {
+		// Send to event chan, which uses the cache
+		go func() {
+			for _, s := range services {
+				l.placeOnEventChan(l.SSEventChan, EventTypeCreate, s.ID)
+			}
+		}()
+	} else {
+		// Send directly to notification chan, skipping the cache
+		go func() {
+			for _, s := range services {
+				ssm := MinifySwarmService(s, l.IgnoreKey, l.IncludeKey)
+
+				params := GetSwarmServiceMiniCreateParameters(ssm)
+				paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
+				l.placeOnNotificationChan(l.SSNotificationChan, EventTypeCreate, paramsEncoded)
+			}
+		}()
+	}
+}
+
+// NotifyNodes places all services on queue to notify serivces on node events
+func (l SwarmListener) NotifyNodes(useCache bool) {
+	nodes, err := l.NodeClient.NodeList(context.Background())
+	if err != nil {
+		l.Log.Printf("ERROR: NotifyNodes, %v", err)
+		return
+	}
+
+	if useCache {
+		// Send to event chan, which uses the cache
+		go func() {
+			for _, n := range nodes {
+				l.placeOnEventChan(l.NodeEventChan, EventTypeCreate, n.ID)
+			}
+		}()
+	} else {
+		// Send directly to notification chan, skiping the cache
+		go func() {
+			for _, n := range nodes {
+				nm := MinifyNode(n)
+				params := GetNodeMiniCreateParameters(nm)
+				paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
+				l.placeOnNotificationChan(l.NodeNotificationChan, EventTypeCreate, paramsEncoded)
+			}
+		}()
 	}
 }
 
 func (l SwarmListener) placeOnNotificationChan(notiChan chan<- Notification, eventType EventType, parameters string) {
-	go func() {
-		notiChan <- Notification{
-			EventType:  eventType,
-			Parameters: parameters,
-		}
-	}()
+	notiChan <- Notification{
+		EventType:  eventType,
+		Parameters: parameters,
+	}
+}
+
+func (l SwarmListener) placeOnEventChan(eventChan chan<- Event, eventType EventType, ID string) {
+	eventChan <- Event{
+		Type: eventType,
+		ID:   ID,
+	}
 }
 
 // GetServicesParameters get all services

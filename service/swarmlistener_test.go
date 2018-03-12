@@ -210,7 +210,44 @@ func (s *WatcherTestSuite) Test_Run_NodeChannel() {
 
 }
 
-func (s *WatcherTestSuite) Test_NotifyServices() {
+func (s *WatcherTestSuite) Test_NotifyServices_WithCache() {
+
+	expServices := []SwarmService{
+		SwarmService{
+			swarm.Service{
+				ID: "serviceID1"}, nil,
+		},
+		SwarmService{
+			swarm.Service{
+				ID: "serviceID2"}, nil,
+		},
+	}
+	s.SSClientMock.On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx"), true).Return(expServices, nil)
+
+	s.SwarmListener.NotifyServices(true)
+
+	timeout := time.NewTimer(time.Second * 5).C
+
+	eventCnt := 0
+
+	for {
+		if eventCnt == 2 {
+			break
+		}
+		select {
+		case <-s.SwarmListener.SSEventChan:
+			eventCnt++
+		case <-timeout:
+			s.Fail("Timeout")
+			return
+		}
+	}
+
+	s.Equal(2, eventCnt)
+	s.SSClientMock.AssertExpectations(s.T())
+}
+
+func (s *WatcherTestSuite) Test_NotifyServices_WithoutCache() {
 
 	expServices := []SwarmService{
 		SwarmService{
@@ -222,7 +259,7 @@ func (s *WatcherTestSuite) Test_NotifyServices() {
 	}
 	s.SSClientMock.On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx"), true).Return(expServices, nil)
 
-	s.SwarmListener.NotifyServices()
+	s.SwarmListener.NotifyServices(false)
 
 	timeout := time.NewTimer(time.Second * 5).C
 
@@ -243,8 +280,74 @@ func (s *WatcherTestSuite) Test_NotifyServices() {
 
 	s.Equal(2, notificationCnt)
 	s.SSClientMock.AssertExpectations(s.T())
-	s.SSCacheMock.AssertExpectations(s.T())
-	s.NotifyDistributorMock.AssertExpectations(s.T())
+}
+
+func (s *WatcherTestSuite) Test_NotifyNodes_WithoutCache() {
+	expNodes := []swarm.Node{
+		swarm.Node{
+			ID: "nodeID1",
+		},
+		swarm.Node{
+			ID: "nodeID2",
+		},
+	}
+	s.NodeClientMock.On("NodeList", mock.AnythingOfType("*context.emptyCtx")).Return(expNodes, nil)
+
+	s.SwarmListener.NotifyNodes(false)
+
+	timeout := time.NewTimer(time.Second * 5).C
+
+	notificationCnt := 0
+
+	for {
+		if notificationCnt == 2 {
+			break
+		}
+		select {
+		case <-s.SwarmListener.NodeNotificationChan:
+			notificationCnt++
+		case <-timeout:
+			s.Fail("Timeout")
+			return
+		}
+	}
+
+	s.Equal(2, notificationCnt)
+	s.NodeClientMock.AssertExpectations(s.T())
+}
+
+func (s *WatcherTestSuite) Test_NotifyNodes_WithCache() {
+	expNodes := []swarm.Node{
+		swarm.Node{
+			ID: "nodeID1",
+		},
+		swarm.Node{
+			ID: "nodeID2",
+		},
+	}
+	s.NodeClientMock.On("NodeList", mock.AnythingOfType("*context.emptyCtx")).Return(expNodes, nil)
+
+	s.SwarmListener.NotifyNodes(true)
+
+	timeout := time.NewTimer(time.Second * 5).C
+
+	eventCnt := 0
+
+	for {
+		if eventCnt == 2 {
+			break
+		}
+		select {
+		case <-s.SwarmListener.NodeEventChan:
+			eventCnt++
+		case <-timeout:
+			s.Fail("Timeout")
+			return
+		}
+	}
+
+	s.Equal(2, eventCnt)
+	s.NodeClientMock.AssertExpectations(s.T())
 }
 
 func (s *WatcherTestSuite) Test_GetServices() {
