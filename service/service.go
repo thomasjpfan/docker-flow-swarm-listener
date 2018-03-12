@@ -76,22 +76,18 @@ func (c SwarmServiceClient) SwarmServiceList(ctx context.Context, includeNodeIPI
 
 func (c SwarmServiceClient) getNodeInfo(ss swarm.Service) *NodeIPSet {
 
-	nodeInfo := NodeIPSet{}
-	filter := filters.NewArgs()
-	filter.Add("desired-state", "running")
-	filter.Add("service", ss.Spec.Name)
-	taskList, err := c.DockerClient.TaskList(
-		context.Background(), types.TaskListOptions{Filters: filter})
-	if err != nil {
-		return nil
-	}
-
 	networkName, ok := ss.Spec.Labels[c.ScrapeNetLabel]
 	if !ok {
 		return nil
 	}
 
-	nodeCache := map[string]string{}
+	taskList, err := c.getTaskList(ss.ID)
+	if err != nil {
+		return nil
+	}
+
+	nodeInfo := NodeIPSet{}
+	nodeIPCache := map[string]string{}
 	for _, task := range taskList {
 		if len(task.NetworksAttachments) == 0 || len(task.NetworksAttachments[0].Addresses) == 0 {
 			continue
@@ -107,7 +103,7 @@ func (c SwarmServiceClient) getNodeInfo(ss swarm.Service) *NodeIPSet {
 			continue
 		}
 
-		if nodeName, ok := nodeCache[task.NodeID]; ok {
+		if nodeName, ok := nodeIPCache[task.NodeID]; ok {
 			nodeInfo.Add(nodeName, address)
 		} else {
 			node, _, err := c.DockerClient.NodeInspectWithRaw(context.Background(), task.NodeID)
@@ -115,7 +111,7 @@ func (c SwarmServiceClient) getNodeInfo(ss swarm.Service) *NodeIPSet {
 				continue
 			}
 			nodeInfo.Add(node.Description.Hostname, address)
-			nodeCache[task.NodeID] = node.Description.Hostname
+			nodeIPCache[task.NodeID] = node.Description.Hostname
 		}
 	}
 
@@ -123,4 +119,13 @@ func (c SwarmServiceClient) getNodeInfo(ss swarm.Service) *NodeIPSet {
 		return nil
 	}
 	return &nodeInfo
+}
+
+func (c SwarmServiceClient) getTaskList(serviceID string) ([]swarm.Task, error) {
+
+	filter := filters.NewArgs()
+	filter.Add("desired-state", "running")
+	filter.Add("service", serviceID)
+	return c.DockerClient.TaskList(
+		context.Background(), types.TaskListOptions{Filters: filter})
 }
