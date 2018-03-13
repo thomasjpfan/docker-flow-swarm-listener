@@ -1,7 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"testing"
 	"time"
 
@@ -10,11 +12,13 @@ import (
 
 type SwarmServiceClientTestSuite struct {
 	suite.Suite
-	SClient *SwarmServiceClient
-	Util1ID string
-	Util2ID string
-	Util3ID string
-	Util4ID string
+	SClient  *SwarmServiceClient
+	Util1ID  string
+	Util2ID  string
+	Util3ID  string
+	Util4ID  string
+	Logger   *log.Logger
+	LogBytes *bytes.Buffer
 }
 
 func TestSwarmServiceClientTestSuite(t *testing.T) {
@@ -24,7 +28,11 @@ func TestSwarmServiceClientTestSuite(t *testing.T) {
 func (s *SwarmServiceClientTestSuite) SetupSuite() {
 	c, err := NewDockerClientFromEnv()
 	s.Require().NoError(err)
-	s.SClient = NewSwarmServiceClient(c, "com.df.notify=true", "com.df.scrapeNetwork")
+
+	s.LogBytes = new(bytes.Buffer)
+	s.Logger = log.New(s.LogBytes, "", 0)
+
+	s.SClient = NewSwarmServiceClient(c, "com.df.notify=true", "com.df.scrapeNetwork", s.Logger)
 
 	createTestOverlayNetwork("util-network")
 	createTestService("util-1", []string{"com.df.notify=true", "com.df.scrapeNetwork=util-network"}, false, "", "util-network")
