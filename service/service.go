@@ -89,7 +89,7 @@ func (c SwarmServiceClient) SwarmServiceList(ctx context.Context, includeNodeIPI
 	return swarmServices, nil
 }
 
-func (c SwarmServiceClient) getNodeInfo(ctx context.Context, ss swarm.Service) (*NodeIPSet, error) {
+func (c SwarmServiceClient) getNodeInfo(ctx context.Context, ss swarm.Service) (NodeIPSet, error) {
 
 	networkName, ok := ss.Spec.Labels[c.ScrapeNetLabel]
 	if !ok {
@@ -121,7 +121,7 @@ func (c SwarmServiceClient) getNodeInfo(ctx context.Context, ss swarm.Service) (
 		if nodeName, ok := nodeIPCache[task.NodeID]; ok {
 			nodeInfo.Add(nodeName, address)
 		} else {
-			node, _, err := c.DockerClient.NodeInspectWithRaw(context.Background(), task.NodeID)
+			node, _, err := c.DockerClient.NodeInspectWithRaw(ctx, task.NodeID)
 			if err != nil {
 				continue
 			}
@@ -133,5 +133,5 @@ func (c SwarmServiceClient) getNodeInfo(ctx context.Context, ss swarm.Service) (
 	if nodeInfo.Cardinality() == 0 {
 		return nil, nil
 	}
-	return &nodeInfo, nil
+	return nodeInfo, nil
 }

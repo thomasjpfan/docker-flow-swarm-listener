@@ -92,7 +92,7 @@ func (s *SwarmServiceClientTestSuite) Test_SwarmServiceInspect_NodeInfo_OneRepli
 	s.Equal(s.Util1ID, util1Service.ID)
 	s.Require().NotNil(util1Service.NodeInfo)
 
-	nodeInfo := *util1Service.NodeInfo
+	nodeInfo := util1Service.NodeInfo
 	s.Require().Len(nodeInfo, 1)
 }
 
@@ -105,7 +105,7 @@ func (s *SwarmServiceClientTestSuite) Test_SwarmServiceInspect_NodeInfo_TwoRepli
 	s.Equal(s.Util4ID, util4Service.ID)
 	s.Require().NotNil(util4Service.NodeInfo)
 
-	nodeInfo := *util4Service.NodeInfo
+	nodeInfo := util4Service.NodeInfo
 	s.Require().Len(nodeInfo, 2)
 }
 
