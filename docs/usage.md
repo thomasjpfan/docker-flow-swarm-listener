@@ -47,3 +47,7 @@ The *Get Services* endpoint is used to query all running services with the `DF_N
 ### Notify Services
 
 *DFSL* normally sends out notifcations when a service is created, updated, or removed. The *Notify Services* endpoint will force *DFSL* to send out notifications for all running services with the `DF_NOTIFY_LABEL` label. A `GET` request to **[SWARM_LISTENER_IP]:[SWARM_LISTENER_PORT]/v1/docker-flow-swarm-listener/notify-services** sends out the notifications.
+
+### Get Nodes
+
+The *Get Nodes* endpoint is used to query all nodes. A `GET` request to **[SWARM_LISTENER_IP]:[SWARM_LISTENER_PORT]/v1/docker-flow-swarm-listener/get-nodes** returns a json representation of these nodes.
