@@ -11,13 +11,13 @@ type notificationSenderMock struct {
 	mock.Mock
 }
 
-func (m *notificationSenderMock) Create(params string) error {
-	args := m.Called(params)
+func (m *notificationSenderMock) Create(ctx context.Context, params string) error {
+	args := m.Called(ctx, params)
 	return args.Error(0)
 }
 
-func (m *notificationSenderMock) Remove(params string) error {
-	args := m.Called(params)
+func (m *notificationSenderMock) Remove(ctx context.Context, params string) error {
+	args := m.Called(ctx, params)
 	return args.Error(0)
 }
 

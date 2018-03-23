@@ -279,18 +279,22 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	mock2Remove := make(chan struct{})
 
 	serviceNotifyMock1 := notificationSenderMock{}
-	serviceNotifyMock1.On("Create", "hello=world").Return(nil).Run(func(args mock.Arguments) {
+	serviceNotifyMock1.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock1Create <- struct{}{}
 	})
-	serviceNotifyMock1.On("Remove", "hello=world2").Return(nil).Run(func(args mock.Arguments) {
+	serviceNotifyMock1.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock1Remove <- struct{}{}
 	})
 
 	serviceNotifyMock2 := notificationSenderMock{}
-	serviceNotifyMock2.On("Create", "hello=world").Return(nil).Run(func(args mock.Arguments) {
+	serviceNotifyMock2.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock2Create <- struct{}{}
 	})
-	serviceNotifyMock2.On("Remove", "hello=world2").Return(nil).Run(func(args mock.Arguments) {
+	serviceNotifyMock2.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock2Remove <- struct{}{}
 	})
 
@@ -360,18 +364,22 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	mock2Remove := make(chan struct{})
 
 	nodesNotifyMock1 := notificationSenderMock{}
-	nodesNotifyMock1.On("Create", "hello=world").Return(nil).Run(func(args mock.Arguments) {
+	nodesNotifyMock1.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock1Create <- struct{}{}
 	})
-	nodesNotifyMock1.On("Remove", "hello=world2").Return(nil).Run(func(args mock.Arguments) {
+	nodesNotifyMock1.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock1Remove <- struct{}{}
 	})
 
 	nodesNotifyMock2 := notificationSenderMock{}
-	nodesNotifyMock2.On("Create", "hello=world").Return(nil).Run(func(args mock.Arguments) {
+	nodesNotifyMock2.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock2Create <- struct{}{}
 	})
-	nodesNotifyMock2.On("Remove", "hello=world2").Return(nil).Run(func(args mock.Arguments) {
+	nodesNotifyMock2.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
+		Return(nil).Run(func(args mock.Arguments) {
 		mock2Remove <- struct{}{}
 	})
 

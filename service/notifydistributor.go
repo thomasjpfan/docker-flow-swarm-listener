@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"log"
 	"net/url"
 	"os"
@@ -154,24 +155,24 @@ func (d NotifyDistributor) watchChannels(endpoint NotifyEndpoint) {
 		select {
 		case n := <-endpoint.ServiceChan:
 			if n.EventType == EventTypeCreate {
-				err := endpoint.ServiceNotifier.Create(n.Parameters)
+				err := endpoint.ServiceNotifier.Create(context.Background(), n.Parameters)
 				if err != nil {
 					d.log.Printf("ERROR: Unable to send ServiceCreateNotify to %s, params: %s", endpoint.ServiceNotifier.GetCreateAddr(), n.Parameters)
 				}
 			} else if n.EventType == EventTypeRemove {
-				err := endpoint.ServiceNotifier.Remove(n.Parameters)
+				err := endpoint.ServiceNotifier.Remove(context.Background(), n.Parameters)
 				if err != nil {
 					d.log.Printf("ERROR: Unable to send ServiceRemoveNotify to %s, params: %s", endpoint.ServiceNotifier.GetRemoveAddr(), n.Parameters)
 				}
 			}
 		case n := <-endpoint.NodeChan:
 			if n.EventType == EventTypeCreate {
-				err := endpoint.NodeNotifier.Create(n.Parameters)
+				err := endpoint.NodeNotifier.Create(context.Background(), n.Parameters)
 				if err != nil {
 					d.log.Printf("ERROR: Unable to send NodeCreateNotify to %s, params: %s", endpoint.NodeNotifier.GetCreateAddr(), n.Parameters)
 				}
 			} else if n.EventType == EventTypeRemove {
-				err := endpoint.NodeNotifier.Remove(n.Parameters)
+				err := endpoint.NodeNotifier.Remove(context.Background(), n.Parameters)
 				if err != nil {
 					d.log.Printf("ERROR: Unable to send NodeRemoveNotify to %s, params: %s", endpoint.NodeNotifier.GetRemoveAddr(), n.Parameters)
 				}
