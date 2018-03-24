@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"../metrics"
@@ -91,12 +92,16 @@ func (n Notifier) Create(ctx context.Context, params string) error {
 		case i := <-retryChan:
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				if i < n.retries && n.interval > 0 {
+				if i <= n.retries && n.interval > 0 {
 					n.log.Printf("Retrying %s created notification to %s (%d try)", n.notifyType, fullURL, i)
 					time.Sleep(time.Second * time.Duration(n.interval))
 					retryChan <- i + 1
 					continue
 				} else {
+					if strings.Contains(err.Error(), "context") {
+						n.log.Printf("Canceling %s create notification to %s", n.notifyType, fullURL)
+						return nil
+					}
 					n.log.Printf("ERROR: %v", err)
 					metrics.RecordError(n.createErrorMetric)
 					return err
@@ -106,7 +111,7 @@ func (n Notifier) Create(ctx context.Context, params string) error {
 
 			if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
 				return nil
-			} else if i < n.retries && n.interval > 0 {
+			} else if i <= n.retries && n.interval > 0 {
 				n.log.Printf("Retrying %s created notification to %s (%d try)", n.notifyType, fullURL, i)
 				time.Sleep(time.Second * time.Duration(n.interval))
 				retryChan <- i + 1
@@ -165,12 +170,16 @@ func (n Notifier) Remove(ctx context.Context, params string) error {
 		case i := <-retryChan:
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				if i < n.retries && n.interval > 0 {
+				if i <= n.retries && n.interval > 0 {
 					n.log.Printf("Retrying %s removed notification to %s (%d try)", n.notifyType, fullURL, i)
 					time.Sleep(time.Second * time.Duration(n.interval))
 					retryChan <- i + 1
 					continue
 				} else {
+					if strings.Contains(err.Error(), "context") {
+						n.log.Printf("Canceling %s create notification to %s", n.notifyType, fullURL)
+						return nil
+					}
 					n.log.Printf("ERROR: %v", err)
 					metrics.RecordError(n.removeErrorMetric)
 					return err
@@ -180,10 +189,11 @@ func (n Notifier) Remove(ctx context.Context, params string) error {
 
 			if resp.StatusCode == http.StatusOK {
 				return nil
-			} else if i < n.retries && n.interval > 0 {
+			} else if i <= n.retries && n.interval > 0 {
 				n.log.Printf("Retrying %s removed notification to %s (%d try)", n.notifyType, fullURL, i)
 				time.Sleep(time.Second * time.Duration(n.interval))
 				retryChan <- i + 1
+				continue
 			} else {
 				body, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
