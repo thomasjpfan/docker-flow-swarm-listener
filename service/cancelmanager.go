@@ -14,19 +14,23 @@ type CancelManaging interface {
 type cancelPair struct {
 	Cancel context.CancelFunc
 	ReqID  int64
+	Cnt    int
 }
 
 // CancelManager implements the `CancelManaging` interface that is thread safe
 type CancelManager struct {
-	v   map[string]cancelPair
-	mux sync.Mutex
+	v           map[string]cancelPair
+	mux         sync.Mutex
+	startingCnt int
 }
 
 // NewCancelManager creates a new `CancelManager`
-func NewCancelManager() *CancelManager {
+// `startingCnt` is the number of expected request to send out
+func NewCancelManager(startingCnt int) *CancelManager {
 	return &CancelManager{
-		v:   map[string]cancelPair{},
-		mux: sync.Mutex{},
+		v:           map[string]cancelPair{},
+		mux:         sync.Mutex{},
+		startingCnt: startingCnt,
 	}
 }
 
@@ -47,6 +51,7 @@ func (m *CancelManager) Add(id string, reqID int64) context.Context {
 	m.v[id] = cancelPair{
 		Cancel: cancel,
 		ReqID:  reqID,
+		Cnt:    m.startingCnt,
 	}
 	return ctx
 }
@@ -60,6 +65,13 @@ func (m *CancelManager) Delete(id string, reqID int64) {
 	pair, ok := m.v[id]
 
 	if !ok || pair.ReqID != reqID {
+		return
+	}
+
+	pair.Cnt = pair.Cnt - 1
+
+	if pair.Cnt != 0 {
+		m.v[id] = pair
 		return
 	}
 

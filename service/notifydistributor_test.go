@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"os"
 	"testing"
@@ -13,10 +14,8 @@ import (
 
 type NotifyDistributorTestSuite struct {
 	suite.Suite
-	serviceCancelManagerMock *cancelManagingMock
-	nodeCancelManagerMock    *cancelManagingMock
-	log                      *log.Logger
-	logBytes                 *bytes.Buffer
+	log      *log.Logger
+	logBytes *bytes.Buffer
 }
 
 func TestNotifyDistributorUnitTestSuite(t *testing.T) {
@@ -29,8 +28,6 @@ func (s *NotifyDistributorTestSuite) SetupSuite() {
 }
 func (s *NotifyDistributorTestSuite) SetupTest() {
 	s.logBytes.Reset()
-	s.serviceCancelManagerMock = new(cancelManagingMock)
-	s.nodeCancelManagerMock = new(cancelManagingMock)
 }
 
 func (s *NotifyDistributorTestSuite) Test_NewNotifyDistributorFromStrings() {
@@ -277,48 +274,61 @@ func (s *NotifyDistributorTestSuite) Test_NewNotifyDistributorFromEnv_Node() {
 }
 
 func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints_Servies() {
-	mock1Create := make(chan struct{})
-	mock1Remove := make(chan struct{})
-	mock2Create := make(chan struct{})
-	mock2Remove := make(chan struct{})
+	serviceCancel1 := make(chan struct{})
+	serviceCancel2 := make(chan struct{})
+	deleteCnt1 := 0
+	deleteCnt2 := 0
 
 	serviceNotifyMock1 := notificationSenderMock{}
 	serviceNotifyMock1.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock1Create <- struct{}{}
-	})
+		Return(nil)
 	serviceNotifyMock1.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock1Remove <- struct{}{}
-	})
-
+		Return(nil)
 	serviceNotifyMock2 := notificationSenderMock{}
 	serviceNotifyMock2.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock2Create <- struct{}{}
-	})
+		Return(nil)
 	serviceNotifyMock2.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock2Remove <- struct{}{}
-	})
+		Return(nil)
+	serviceCancelManagerMock := new(cancelManagingMock)
+	serviceCancelManagerMock.On("Add", "sid1", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		On("Add", "sid2", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		On("Delete", "sid1", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		Run(func(args mock.Arguments) {
+			deleteCnt1++
+			if deleteCnt1 == 2 {
+				serviceCancel1 <- struct{}{}
+			}
+		}).
+		On("Delete", "sid2", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		Run(func(args mock.Arguments) {
+			deleteCnt2++
+			if deleteCnt2 == 2 {
+				serviceCancel2 <- struct{}{}
+			}
+		})
+	nodeCancelManagerMock := new(cancelManagingMock)
 
 	endpoints := map[string]NotifyEndpoint{
 		"host1": NotifyEndpoint{
-			ServiceChan:     make(chan Notification),
+			ServiceChan:     make(chan internalNotification),
 			ServiceNotifier: &serviceNotifyMock1,
 			NodeChan:        nil,
 			NodeNotifier:    nil,
 		},
 		"host2": NotifyEndpoint{
-			ServiceChan:     make(chan Notification),
+			ServiceChan:     make(chan internalNotification),
 			ServiceNotifier: &serviceNotifyMock2,
 			NodeChan:        nil,
 			NodeNotifier:    nil,
 		},
 	}
 
-	notifyD := newNotifyDistributor(endpoints, s.serviceCancelManagerMock,
-		s.nodeCancelManagerMock, 1, s.log)
+	notifyD := newNotifyDistributor(endpoints, serviceCancelManagerMock,
+		nodeCancelManagerMock, 1, s.log)
 	serviceChan := make(chan Notification)
 
 	notifyD.Run(serviceChan, nil)
@@ -326,14 +336,14 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	go func() {
 		serviceChan <- Notification{
 			EventType:  EventTypeCreate,
-			ID:         "id1",
+			ID:         "sid1",
 			Parameters: "hello=world",
 		}
 	}()
 	go func() {
 		serviceChan <- Notification{
 			EventType:  EventTypeRemove,
-			ID:         "id1",
+			ID:         "sid2",
 			Parameters: "hello=world2",
 		}
 	}()
@@ -341,19 +351,14 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	timer := time.NewTimer(time.Second * 5).C
 
 	for {
-		if mock1Create == nil && mock1Remove == nil &&
-			mock2Create == nil && mock2Remove == nil {
+		if serviceCancel1 == nil && serviceCancel2 == nil {
 			break
 		}
 		select {
-		case <-mock1Create:
-			mock1Create = nil
-		case <-mock1Remove:
-			mock1Remove = nil
-		case <-mock2Create:
-			mock2Create = nil
-		case <-mock2Remove:
-			mock2Remove = nil
+		case <-serviceCancel1:
+			serviceCancel1 = nil
+		case <-serviceCancel2:
+			serviceCancel2 = nil
 		case <-timer:
 			s.Fail("Timeout")
 			return
@@ -362,51 +367,66 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 
 	serviceNotifyMock1.AssertExpectations(s.T())
 	serviceNotifyMock2.AssertExpectations(s.T())
+	serviceCancelManagerMock.AssertExpectations(s.T())
 }
 
 func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints_Nodes1() {
-	mock1Create := make(chan struct{})
-	mock1Remove := make(chan struct{})
-	mock2Create := make(chan struct{})
-	mock2Remove := make(chan struct{})
+	nodeCancel1 := make(chan struct{})
+	nodeCancel2 := make(chan struct{})
+	deleteCnt1 := 0
+	deleteCnt2 := 0
 
 	nodesNotifyMock1 := notificationSenderMock{}
 	nodesNotifyMock1.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock1Create <- struct{}{}
-	})
+		Return(nil)
 	nodesNotifyMock1.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock1Remove <- struct{}{}
-	})
+		Return(nil)
 
 	nodesNotifyMock2 := notificationSenderMock{}
 	nodesNotifyMock2.On("Create", mock.AnythingOfType("*context.emptyCtx"), "hello=world").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock2Create <- struct{}{}
-	})
+		Return(nil)
 	nodesNotifyMock2.On("Remove", mock.AnythingOfType("*context.emptyCtx"), "hello=world2").
-		Return(nil).Run(func(args mock.Arguments) {
-		mock2Remove <- struct{}{}
-	})
+		Return(nil)
+	serviceCancelManagerMock := new(cancelManagingMock)
+	nodeCancelManagerMock := new(cancelManagingMock)
+	nodeCancelManagerMock.On("Add", "nid1", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		On("Add", "nid2", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		On("Delete", "nid1", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		Run(func(args mock.Arguments) {
+			deleteCnt1++
+			if deleteCnt1 == 2 {
+				nodeCancel1 <- struct{}{}
+			}
+		}).
+		On("Delete", "nid2", mock.AnythingOfType("int64")).
+		Return(context.Background()).
+		Run(func(args mock.Arguments) {
+			deleteCnt2++
+			if deleteCnt2 == 2 {
+				nodeCancel2 <- struct{}{}
+			}
+		})
 
 	endpoints := map[string]NotifyEndpoint{
 		"host1": NotifyEndpoint{
 			ServiceChan:     nil,
 			ServiceNotifier: nil,
-			NodeChan:        make(chan Notification),
+			NodeChan:        make(chan internalNotification),
 			NodeNotifier:    &nodesNotifyMock1,
 		},
 		"host2": NotifyEndpoint{
 			ServiceChan:     nil,
 			ServiceNotifier: nil,
-			NodeChan:        make(chan Notification),
+			NodeChan:        make(chan internalNotification),
 			NodeNotifier:    &nodesNotifyMock2,
 		},
 	}
 
-	notifyD := newNotifyDistributor(endpoints, s.serviceCancelManagerMock,
-		s.nodeCancelManagerMock, 1, s.log)
+	notifyD := newNotifyDistributor(endpoints, serviceCancelManagerMock,
+		nodeCancelManagerMock, 1, s.log)
 	nodeChan := make(chan Notification)
 
 	notifyD.Run(nil, nodeChan)
@@ -414,14 +434,14 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	go func() {
 		nodeChan <- Notification{
 			EventType:  EventTypeCreate,
-			ID:         "id1",
+			ID:         "nid1",
 			Parameters: "hello=world",
 		}
 	}()
 	go func() {
 		nodeChan <- Notification{
 			EventType:  EventTypeRemove,
-			ID:         "id2",
+			ID:         "nid2",
 			Parameters: "hello=world2",
 		}
 	}()
@@ -429,19 +449,14 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	timer := time.NewTimer(time.Second * 5).C
 
 	for {
-		if mock1Create == nil && mock1Remove == nil &&
-			mock2Create == nil && mock2Remove == nil {
+		if nodeCancel1 == nil && nodeCancel2 == nil {
 			break
 		}
 		select {
-		case <-mock1Create:
-			mock1Create = nil
-		case <-mock1Remove:
-			mock1Remove = nil
-		case <-mock2Create:
-			mock2Create = nil
-		case <-mock2Remove:
-			mock2Remove = nil
+		case <-nodeCancel1:
+			nodeCancel1 = nil
+		case <-nodeCancel2:
+			nodeCancel2 = nil
 		case <-timer:
 			s.Fail("Timeout")
 			return
@@ -450,6 +465,7 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 
 	nodesNotifyMock1.AssertExpectations(s.T())
 	nodesNotifyMock2.AssertExpectations(s.T())
+	nodeCancelManagerMock.AssertExpectations(s.T())
 }
 
 func (s *NotifyDistributorTestSuite) AssertEndpoints(endpoint NotifyEndpoint, serviceCreateAddr, serviceRemoveAddr, nodeCreateAddr, nodeRemoveAddr string) {

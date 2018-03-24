@@ -178,7 +178,7 @@ func (n Notifier) Remove(ctx context.Context, params string) error {
 					continue
 				} else {
 					if strings.Contains(err.Error(), "context") {
-						n.log.Printf("Canceling %s create notification to %s", n.notifyType, fullURL)
+						n.log.Printf("Canceling %s remove notification to %s", n.notifyType, fullURL)
 						return nil
 					}
 					n.log.Printf("ERROR: %v", err)
