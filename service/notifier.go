@@ -123,15 +123,16 @@ func (n Notifier) Create(ctx context.Context, params string) error {
 				metrics.RecordError(n.createErrorMetric)
 				return err
 			}
+			err = fmt.Errorf("Failed at retrying request to %s returned status code %d", fullURL, resp.StatusCode)
+			n.log.Printf("ERROR: %v", err)
+			metrics.RecordError(n.createErrorMetric)
+			return err
 		case <-ctx.Done():
 			n.log.Printf("Canceling %s create notification to %s", n.notifyType, fullURL)
 			return nil
 		}
 
 	}
-
-	// Should never reach this state
-	return nil
 }
 
 // Remove sends remove notifications to listeners
@@ -195,12 +196,13 @@ func (n Notifier) Remove(ctx context.Context, params string) error {
 				metrics.RecordError(n.removeErrorMetric)
 				return err
 			}
+			err = fmt.Errorf("Failed at retrying request to %s returned status code %d", fullURL, resp.StatusCode)
+			n.log.Printf("ERROR: %v", err)
+			metrics.RecordError(n.createErrorMetric)
+			return err
 		case <-ctx.Done():
 			n.log.Printf("Canceling %s remove notification to %s", n.notifyType, fullURL)
 			return nil
 		}
 	}
-
-	// Should never reach this state
-	return nil
 }
