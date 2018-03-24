@@ -31,6 +31,19 @@ func (m *notificationSenderMock) GetRemoveAddr() string {
 	return args.String(0)
 }
 
+type cancelManagingMock struct {
+	mock.Mock
+}
+
+func (m *cancelManagingMock) Add(id string, reqID int64) context.Context {
+	args := m.Called(id, reqID)
+	return args.Get(0).(context.Context)
+}
+
+func (m *cancelManagingMock) Delete(id string, reqID int64) {
+	m.Called(id, reqID)
+}
+
 type swarmServiceListeningMock struct {
 	mock.Mock
 }

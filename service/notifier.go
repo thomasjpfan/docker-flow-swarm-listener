@@ -119,11 +119,12 @@ func (n Notifier) Create(ctx context.Context, params string) error {
 			} else if resp.StatusCode == http.StatusConflict || resp.StatusCode != http.StatusOK {
 				body, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
+					err = fmt.Errorf("Failed at retrying request to %s returned status code %d", fullURL, resp.StatusCode)
 					n.log.Printf("ERROR: %v", err)
 					metrics.RecordError(n.createErrorMetric)
 					return err
 				}
-				err = fmt.Errorf("Request %s returned status code %d\n%s", fullURL, resp.StatusCode, string(body[:]))
+				err = fmt.Errorf("Failed at retrying request to %s returned status code %d\n%s", fullURL, resp.StatusCode, string(body[:]))
 				n.log.Printf("ERROR: %v", err)
 				metrics.RecordError(n.createErrorMetric)
 				return err
@@ -197,19 +198,16 @@ func (n Notifier) Remove(ctx context.Context, params string) error {
 			} else {
 				body, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
+					err = fmt.Errorf("Failed at retrying request to %s returned status code %d", fullURL, resp.StatusCode)
 					n.log.Printf("ERROR: %v", err)
 					metrics.RecordError(n.removeErrorMetric)
 					return err
 				}
-				err = fmt.Errorf("Request %s returned status code %d\n%s", fullURL, resp.StatusCode, string(body[:]))
+				err = fmt.Errorf("Failed at retrying request to %s returned status code %d\n%s", fullURL, resp.StatusCode, string(body[:]))
 				n.log.Printf("ERROR: %v", err)
 				metrics.RecordError(n.removeErrorMetric)
 				return err
 			}
-			err = fmt.Errorf("Failed at retrying request to %s returned status code %d", fullURL, resp.StatusCode)
-			n.log.Printf("ERROR: %v", err)
-			metrics.RecordError(n.createErrorMetric)
-			return err
 		case <-ctx.Done():
 			n.log.Printf("Canceling %s remove notification to %s", n.notifyType, fullURL)
 			return nil

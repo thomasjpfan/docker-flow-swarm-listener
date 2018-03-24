@@ -13,8 +13,10 @@ import (
 
 type NotifyDistributorTestSuite struct {
 	suite.Suite
-	log      *log.Logger
-	logBytes *bytes.Buffer
+	serviceCancelManagerMock *cancelManagingMock
+	nodeCancelManagerMock    *cancelManagingMock
+	log                      *log.Logger
+	logBytes                 *bytes.Buffer
 }
 
 func TestNotifyDistributorUnitTestSuite(t *testing.T) {
@@ -27,6 +29,8 @@ func (s *NotifyDistributorTestSuite) SetupSuite() {
 }
 func (s *NotifyDistributorTestSuite) SetupTest() {
 	s.logBytes.Reset()
+	s.serviceCancelManagerMock = new(cancelManagingMock)
+	s.nodeCancelManagerMock = new(cancelManagingMock)
 }
 
 func (s *NotifyDistributorTestSuite) Test_NewNotifyDistributorFromStrings() {
@@ -313,7 +317,8 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 		},
 	}
 
-	notifyD := newNotifyDistributor(endpoints, 1, s.log)
+	notifyD := newNotifyDistributor(endpoints, s.serviceCancelManagerMock,
+		s.nodeCancelManagerMock, 1, s.log)
 	serviceChan := make(chan Notification)
 
 	notifyD.Run(serviceChan, nil)
@@ -321,12 +326,14 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	go func() {
 		serviceChan <- Notification{
 			EventType:  EventTypeCreate,
+			ID:         "id1",
 			Parameters: "hello=world",
 		}
 	}()
 	go func() {
 		serviceChan <- Notification{
 			EventType:  EventTypeRemove,
+			ID:         "id1",
 			Parameters: "hello=world2",
 		}
 	}()
@@ -398,7 +405,8 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 		},
 	}
 
-	notifyD := newNotifyDistributor(endpoints, 1, s.log)
+	notifyD := newNotifyDistributor(endpoints, s.serviceCancelManagerMock,
+		s.nodeCancelManagerMock, 1, s.log)
 	nodeChan := make(chan Notification)
 
 	notifyD.Run(nil, nodeChan)
@@ -406,12 +414,14 @@ func (s *NotifyDistributorTestSuite) Test_RunDistributesNotificationsToEndpoints
 	go func() {
 		nodeChan <- Notification{
 			EventType:  EventTypeCreate,
+			ID:         "id1",
 			Parameters: "hello=world",
 		}
 	}()
 	go func() {
 		nodeChan <- Notification{
 			EventType:  EventTypeRemove,
+			ID:         "id2",
 			Parameters: "hello=world2",
 		}
 	}()

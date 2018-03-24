@@ -11,6 +11,7 @@ import (
 // Notification is a node notification
 type Notification struct {
 	EventType  EventType
+	ID         string
 	Parameters string
 }
 
@@ -33,13 +34,23 @@ type NotifyDistributing interface {
 // NotifyDistributor distributes service and node notifications to `NotifyEndpoints`
 // `NotifyEndpoints` are keyed by hostname to send notifications to
 type NotifyDistributor struct {
-	NotifyEndpoints map[string]NotifyEndpoint
-	log             *log.Logger
-	interval        int
+	NotifyEndpoints      map[string]NotifyEndpoint
+	ServiceCancelManager CancelManaging
+	NodeCancelManager    CancelManaging
+	log                  *log.Logger
+	interval             int
 }
 
-func newNotifyDistributor(notifyEndpoints map[string]NotifyEndpoint, interval int, logger *log.Logger) *NotifyDistributor {
-	return &NotifyDistributor{NotifyEndpoints: notifyEndpoints, interval: interval, log: logger}
+func newNotifyDistributor(notifyEndpoints map[string]NotifyEndpoint,
+	serviceCancelManager CancelManaging, nodeCancelManager CancelManaging,
+	interval int, logger *log.Logger) *NotifyDistributor {
+	return &NotifyDistributor{
+		NotifyEndpoints:      notifyEndpoints,
+		ServiceCancelManager: serviceCancelManager,
+		NodeCancelManager:    nodeCancelManager,
+		interval:             interval,
+		log:                  logger,
+	}
 }
 
 func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nodeCreateAddrs, nodeRemoveAddrs string, retries, interval int, logger *log.Logger) *NotifyDistributor {
@@ -79,7 +90,12 @@ func newNotifyDistributorfromStrings(serviceCreateAddrs, serviceRemoveAddrs, nod
 		notifyEndpoints[hostname] = ep
 	}
 
-	return newNotifyDistributor(notifyEndpoints, interval, logger)
+	return newNotifyDistributor(
+		notifyEndpoints,
+		NewCancelManager(),
+		NewCancelManager(),
+		interval,
+		logger)
 }
 
 func insertAddrStringIntoMap(tempEP map[string]map[string]string, key, addrs string) {
