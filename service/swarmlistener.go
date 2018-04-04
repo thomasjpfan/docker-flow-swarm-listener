@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"../metrics"
 )
@@ -151,10 +152,14 @@ func (l *SwarmListener) connectServiceChannels() {
 }
 
 func (l *SwarmListener) processServiceEventCreate(event Event) {
-	service, err := l.SSClient.SwarmServiceInspect(context.Background(), event.ID, l.IncludeNodeInfo)
+	nowUnixNano := time.Now().UTC().UnixNano()
+	ctx := l.ServiceCancelManager.Add(event.ID, nowUnixNano)
+	defer l.ServiceCancelManager.Delete(event.ID, nowUnixNano)
+
+	service, err := l.SSClient.SwarmServiceInspect(ctx, event.ID, l.IncludeNodeInfo)
 	if err != nil {
 		if strings.Contains(err.Error(), "context canceled") {
-			l.Log.Printf("serviceID: %s canceled wait for task to converge", event.ID)
+			l.Log.Printf("serviceID: %s canceled waiting for task to converge", event.ID)
 			return
 		}
 		l.Log.Printf("ERROR: %v", err)
@@ -179,6 +184,8 @@ func (l *SwarmListener) processServiceEventCreate(event Event) {
 }
 
 func (l *SwarmListener) processServiceEventRemove(event Event) {
+	l.ServiceCancelManager.ForceDelete(event.ID)
+
 	ssm, ok := l.SSCache.Get(event.ID)
 	if !ok {
 		return

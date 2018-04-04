@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type WatcherTestSuite struct {
+type SwarmListenerTestSuite struct {
 	suite.Suite
 	SSListenerMock *swarmServiceListeningMock
 	SSClientMock   *swarmServiceInspector
@@ -30,11 +30,11 @@ type WatcherTestSuite struct {
 	LogBytes                 *bytes.Buffer
 }
 
-func TestWatcherUnitTestSuite(t *testing.T) {
-	suite.Run(t, new(WatcherTestSuite))
+func TestSwarmListenerUnitTestSuite(t *testing.T) {
+	suite.Run(t, new(SwarmListenerTestSuite))
 }
 
-func (s *WatcherTestSuite) SetupTest() {
+func (s *SwarmListenerTestSuite) SetupTest() {
 
 	s.SSListenerMock = new(swarmServiceListeningMock)
 	s.SSClientMock = new(swarmServiceInspector)
@@ -63,7 +63,7 @@ func (s *WatcherTestSuite) SetupTest() {
 	)
 }
 
-func (s *WatcherTestSuite) Test_Run_ServicesChannel() {
+func (s *SwarmListenerTestSuite) Test_Run_ServicesChannel() {
 	s.SwarmListener.IncludeNodeInfo = false
 
 	notifyCnt := 0
@@ -94,6 +94,10 @@ func (s *WatcherTestSuite) Test_Run_ServicesChannel() {
 			}
 		}()
 	})
+	s.ServiceCancelManagerMock.
+		On("Add", "serviceID1", mock.AnythingOfType("int64")).Return(context.Background()).
+		On("Delete", "serviceID1", mock.AnythingOfType("int64")).Return(true).
+		On("ForceDelete", "serviceID2").Return(true)
 
 	s.SwarmListener.Run()
 
@@ -131,10 +135,11 @@ func (s *WatcherTestSuite) Test_Run_ServicesChannel() {
 	s.SSClientMock.AssertExpectations(s.T())
 	s.SSCacheMock.AssertExpectations(s.T())
 	s.NotifyDistributorMock.AssertExpectations(s.T())
+	s.ServiceCancelManagerMock.AssertExpectations(s.T())
 
 }
 
-func (s *WatcherTestSuite) Test_Run_NodeChannel() {
+func (s *SwarmListenerTestSuite) Test_Run_NodeChannel() {
 
 	notifyCnt := 0
 	done := make(chan struct{})
@@ -213,7 +218,7 @@ func (s *WatcherTestSuite) Test_Run_NodeChannel() {
 
 }
 
-func (s *WatcherTestSuite) Test_NotifyServices_WithCache() {
+func (s *SwarmListenerTestSuite) Test_NotifyServices_WithCache() {
 
 	expServices := []SwarmService{
 		{
@@ -250,7 +255,7 @@ func (s *WatcherTestSuite) Test_NotifyServices_WithCache() {
 	s.SSClientMock.AssertExpectations(s.T())
 }
 
-func (s *WatcherTestSuite) Test_NotifyServices_WithoutCache() {
+func (s *SwarmListenerTestSuite) Test_NotifyServices_WithoutCache() {
 
 	expServices := []SwarmService{
 		{
@@ -285,7 +290,7 @@ func (s *WatcherTestSuite) Test_NotifyServices_WithoutCache() {
 	s.SSClientMock.AssertExpectations(s.T())
 }
 
-func (s *WatcherTestSuite) Test_NotifyNodes_WithoutCache() {
+func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithoutCache() {
 	expNodes := []swarm.Node{
 		{
 			ID: "nodeID1",
@@ -319,7 +324,7 @@ func (s *WatcherTestSuite) Test_NotifyNodes_WithoutCache() {
 	s.NodeClientMock.AssertExpectations(s.T())
 }
 
-func (s *WatcherTestSuite) Test_NotifyNodes_WithCache() {
+func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithCache() {
 	expNodes := []swarm.Node{
 		{
 			ID: "nodeID1",
@@ -353,7 +358,7 @@ func (s *WatcherTestSuite) Test_NotifyNodes_WithCache() {
 	s.NodeClientMock.AssertExpectations(s.T())
 }
 
-func (s *WatcherTestSuite) Test_GetServices() {
+func (s *SwarmListenerTestSuite) Test_GetServices() {
 
 	expServices := []SwarmService{
 		{
@@ -372,7 +377,7 @@ func (s *WatcherTestSuite) Test_GetServices() {
 	s.SSClientMock.AssertExpectations(s.T())
 }
 
-func (s *WatcherTestSuite) Test_GetNodes() {
+func (s *SwarmListenerTestSuite) Test_GetNodes() {
 
 	expServices := []swarm.Node{
 		{ID: "nodeID1"},
