@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 
 	"../metrics"
 )
@@ -136,42 +137,53 @@ func (l *SwarmListener) connectServiceChannels() {
 	go func() {
 		for event := range l.SSEventChan {
 			if event.Type == EventTypeCreate {
-				service, err := l.SSClient.SwarmServiceInspect(event.ID, l.IncludeNodeInfo)
-				if err != nil {
-					l.Log.Printf("ERROR: %v", err)
-					continue
-				}
-				// Ignored service (filtered by `com.df.notify`)
-				if service == nil {
-					continue
-				}
-				ssm := MinifySwarmService(*service, l.IgnoreKey, l.IncludeKey)
-
-				// Store in cache
-				isUpdated := l.SSCache.InsertAndCheck(ssm)
-				if !isUpdated {
-					continue
-				}
-				metrics.RecordService(l.SSCache.Len())
-
-				params := GetSwarmServiceMiniCreateParameters(ssm)
-				paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
-				l.placeOnNotificationChan(l.SSNotificationChan, event.Type, ssm.ID, paramsEncoded)
+				go l.processServiceEventCreate(event)
 			} else {
-				// EventTypeRemove
-				ssm, ok := l.SSCache.Get(event.ID)
-				if !ok {
-					continue
-				}
-				l.SSCache.Delete(ssm.ID)
-				metrics.RecordService(l.SSCache.Len())
-
-				params := GetSwarmServiceMiniRemoveParameters(ssm)
-				paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
-				l.placeOnNotificationChan(l.SSNotificationChan, event.Type, ssm.ID, paramsEncoded)
+				go l.processServiceEventRemove(event)
 			}
 		}
 	}()
+}
+
+func (l *SwarmListener) processServiceEventCreate(event Event) {
+	service, err := l.SSClient.SwarmServiceInspect(context.Background(), event.ID, l.IncludeNodeInfo)
+	if err != nil {
+		if strings.Contains(err.Error(), "context canceled") {
+			l.Log.Printf("serviceID: %s canceled wait for task to converge", event.ID)
+			return
+		}
+		l.Log.Printf("ERROR: %v", err)
+		return
+	}
+	// Ignored service (filtered by `com.df.notify`)
+	if service == nil {
+		return
+	}
+	ssm := MinifySwarmService(*service, l.IgnoreKey, l.IncludeKey)
+
+	// Store in cache
+	isUpdated := l.SSCache.InsertAndCheck(ssm)
+	if !isUpdated {
+		return
+	}
+	metrics.RecordService(l.SSCache.Len())
+
+	params := GetSwarmServiceMiniCreateParameters(ssm)
+	paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
+	l.placeOnNotificationChan(l.SSNotificationChan, event.Type, ssm.ID, paramsEncoded)
+}
+
+func (l *SwarmListener) processServiceEventRemove(event Event) {
+	ssm, ok := l.SSCache.Get(event.ID)
+	if !ok {
+		return
+	}
+	l.SSCache.Delete(ssm.ID)
+	metrics.RecordService(l.SSCache.Len())
+
+	params := GetSwarmServiceMiniRemoveParameters(ssm)
+	paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
+	l.placeOnNotificationChan(l.SSNotificationChan, event.Type, ssm.ID, paramsEncoded)
 }
 
 func (l *SwarmListener) connectNodeChannels() {

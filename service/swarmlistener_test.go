@@ -72,7 +72,7 @@ func (s *WatcherTestSuite) Test_Run_ServicesChannel() {
 	ss2m := SwarmServiceMini{ID: "serviceID2", Name: "serviceName2", Labels: map[string]string{}}
 
 	s.SSListenerMock.On("ListenForServiceEvents", mock.AnythingOfType("chan<- service.Event"))
-	s.SSClientMock.On("SwarmServiceInspect", "serviceID1", false).Return(&ss1, nil)
+	s.SSClientMock.On("SwarmServiceInspect", mock.AnythingOfType("*context.emptyCtx"), "serviceID1", false).Return(&ss1, nil)
 	s.SSCacheMock.On("InsertAndCheck", ss1m).Return(true).
 		On("Get", "serviceID2").Return(ss2m, true).
 		On("Delete", "serviceID2").
