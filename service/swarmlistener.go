@@ -154,12 +154,13 @@ func (l *SwarmListener) connectServiceChannels() {
 func (l *SwarmListener) processServiceEventCreate(event Event) {
 	nowUnixNano := time.Now().UTC().UnixNano()
 	ctx := l.ServiceCancelManager.Add(event.ID, nowUnixNano)
-	defer l.ServiceCancelManager.Delete(event.ID, nowUnixNano)
+	defer func() {
+		l.ServiceCancelManager.Delete(event.ID, nowUnixNano)
+	}()
 
 	service, err := l.SSClient.SwarmServiceInspect(ctx, event.ID, l.IncludeNodeInfo)
 	if err != nil {
 		if strings.Contains(err.Error(), "context canceled") {
-			l.Log.Printf("serviceID: %s canceled waiting for task to converge", event.ID)
 			return
 		}
 		l.Log.Printf("ERROR: %v", err)
