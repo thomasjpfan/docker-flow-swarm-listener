@@ -8,7 +8,7 @@ import (
 // CancelManaging manages canceling of contexts
 type CancelManaging interface {
 	Add(id string, reqID int64) context.Context
-	Delete(id string, reqID int64)
+	Delete(id string, reqID int64) bool
 }
 
 type cancelPair struct {
@@ -58,23 +58,25 @@ func (m *CancelManager) Add(id string, reqID int64) context.Context {
 
 // Delete calls cancel on context with the corresponding `id` and `reqID` and remove 'id'
 // from memory If the corresponding `id` and `reqID` are not present, Delete does nothing.
-func (m *CancelManager) Delete(id string, reqID int64) {
+// Returns true if item was deleted
+func (m *CancelManager) Delete(id string, reqID int64) bool {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
 	pair, ok := m.v[id]
 
 	if !ok || pair.ReqID != reqID {
-		return
+		return false
 	}
 
 	pair.Cnt = pair.Cnt - 1
 
 	if pair.Cnt != 0 {
 		m.v[id] = pair
-		return
+		return false
 	}
 
 	pair.Cancel()
 	delete(m.v, id)
+	return true
 }

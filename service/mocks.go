@@ -40,8 +40,9 @@ func (m *cancelManagingMock) Add(id string, reqID int64) context.Context {
 	return args.Get(0).(context.Context)
 }
 
-func (m *cancelManagingMock) Delete(id string, reqID int64) {
-	m.Called(id, reqID)
+func (m *cancelManagingMock) Delete(id string, reqID int64) bool {
+	args := m.Called(id, reqID)
+	return args.Bool(0)
 }
 
 type swarmServiceListeningMock struct {
