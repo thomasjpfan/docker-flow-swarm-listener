@@ -24,9 +24,10 @@ type WatcherTestSuite struct {
 
 	NotifyDistributorMock *notifyDistributorMock
 
-	SwarmListener *SwarmListener
-	Logger        *log.Logger
-	LogBytes      *bytes.Buffer
+	ServiceCancelManagerMock *cancelManagingMock
+	SwarmListener            *SwarmListener
+	Logger                   *log.Logger
+	LogBytes                 *bytes.Buffer
 }
 
 func TestWatcherUnitTestSuite(t *testing.T) {
@@ -42,6 +43,7 @@ func (s *WatcherTestSuite) SetupTest() {
 	s.NodeClientMock = new(nodeInspectorMock)
 	s.NodeCacheMock = new(nodeCacherMock)
 	s.NotifyDistributorMock = new(notifyDistributorMock)
+	s.ServiceCancelManagerMock = new(cancelManagingMock)
 	s.LogBytes = new(bytes.Buffer)
 	s.Logger = log.New(s.LogBytes, "", 0)
 
@@ -53,6 +55,7 @@ func (s *WatcherTestSuite) SetupTest() {
 		s.NodeClientMock,
 		s.NodeCacheMock,
 		s.NotifyDistributorMock,
+		s.ServiceCancelManagerMock,
 		true,
 		"com.df.notify",
 		"com.docker.stack.namespace",

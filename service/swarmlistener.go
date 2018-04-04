@@ -34,10 +34,11 @@ type SwarmListener struct {
 
 	NotifyDistributor NotifyDistributing
 
-	IncludeNodeInfo bool
-	IgnoreKey       string
-	IncludeKey      string
-	Log             *log.Logger
+	ServiceCancelManager CancelManaging
+	IncludeNodeInfo      bool
+	IgnoreKey            string
+	IncludeKey           string
+	Log                  *log.Logger
 }
 
 func newSwarmListener(
@@ -50,6 +51,8 @@ func newSwarmListener(
 	nodeCache NodeCacher,
 
 	notifyDistributor NotifyDistributing,
+
+	serviceCancelManager CancelManaging,
 	includeNodeInfo bool,
 	ignoreKey string,
 	includeKey string,
@@ -68,6 +71,7 @@ func newSwarmListener(
 		NodeEventChan:        make(chan Event),
 		NodeNotificationChan: make(chan Notification),
 		NotifyDistributor:    notifyDistributor,
+		ServiceCancelManager: serviceCancelManager,
 		IncludeNodeInfo:      includeNodeInfo,
 		IgnoreKey:            ignoreKey,
 		IncludeKey:           includeKey,
@@ -102,6 +106,7 @@ func NewSwarmListenerFromEnv(retries, interval int, logger *log.Logger) (*SwarmL
 		nodeClient,
 		nodeCache,
 		notifyDistributor,
+		NewCancelManager(1),
 		includeNodeInfo,
 		ignoreKey,
 		"com.docker.stack.namespace",

@@ -95,3 +95,23 @@ func (s *CancelManagerTestSuite) Test_Delete_IDEqual_ReqIDEqual_CntNotZero_Stays
 	s.True(cm.Delete("id1", 1))
 	s.Require().Len(cm.v, 0)
 }
+
+func (s *CancelManagerTestSuite) Test_ForceDelete() {
+	cm := NewCancelManager(2)
+	ctx := cm.Add("id1", 1)
+	s.Require().Len(cm.v, 1)
+
+	s.False(cm.ForceDelete("DOESNOTEXIST"))
+	s.True(cm.ForceDelete("id1"))
+
+L:
+	for {
+		select {
+		case <-time.After(time.Second * 5):
+			s.Fail("Timeout")
+			return
+		case <-ctx.Done():
+			break L
+		}
+	}
+}

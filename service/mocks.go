@@ -45,6 +45,11 @@ func (m *cancelManagingMock) Delete(id string, reqID int64) bool {
 	return args.Bool(0)
 }
 
+func (m *cancelManagingMock) ForceDelete(id string) bool {
+	args := m.Called(id)
+	return args.Bool(0)
+}
+
 type swarmServiceListeningMock struct {
 	mock.Mock
 }

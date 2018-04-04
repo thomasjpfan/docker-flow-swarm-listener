@@ -9,6 +9,7 @@ import (
 type CancelManaging interface {
 	Add(id string, reqID int64) context.Context
 	Delete(id string, reqID int64) bool
+	ForceDelete(id string) bool
 }
 
 type cancelPair struct {
@@ -73,6 +74,22 @@ func (m *CancelManager) Delete(id string, reqID int64) bool {
 
 	if pair.Cnt != 0 {
 		m.v[id] = pair
+		return false
+	}
+
+	pair.Cancel()
+	delete(m.v, id)
+	return true
+}
+
+// ForceDelete deletes an id without looking at the `reqID` and count
+func (m *CancelManager) ForceDelete(id string) bool {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	pair, ok := m.v[id]
+
+	if !ok {
 		return false
 	}
 
