@@ -1,11 +1,10 @@
-FROM docker:17.12.1-ce
+FROM docker:18.06.1-ce
 
 RUN apk add --no-cache gcc musl-dev openssl git go expect curl && \
     go install cmd/...
 
 COPY . /src
 WORKDIR /src
-RUN go get -d -v -t
 RUN chmod +x /src/run-tests.sh
 
 CMD ["sh", "-c", "/src/run-tests.sh"]
