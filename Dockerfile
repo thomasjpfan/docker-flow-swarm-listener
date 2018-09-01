@@ -1,6 +1,6 @@
 FROM golang:1.11.0-alpine3.8 AS build
 
-RUN apk add --update git
+RUN apk add --no-cache --update git
 WORKDIR /develop
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o docker-flow-swarm-listener -ldflags '-w'
