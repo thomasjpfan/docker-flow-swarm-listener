@@ -5,22 +5,22 @@ pages:
   - Configuration: config.md
   - Usage: usage.md
   - About:
-    - Release Notes: release-notes.md
-    - Feedback and Contribution: feedback-and-contribution.md
-    - License: license.md
+      - Release Notes: release-notes.md
+      - Feedback and Contribution: feedback-and-contribution.md
+      - License: license.md
 repo_url: https://github.com/docker-flow/docker-flow-swarm-listener
 site_author: Viktor Farcic
 copyright: Copyright © 2017 Viktor Farcic
 strict: true
-theme: 'material'
+theme: "material"
 extra:
   palette:
-    primary: 'blue'
-    accent: 'light blue'
+    primary: "blue"
+    accent: "light blue"
 markdown_extensions:
   - toc
   - admonition
-  - codehilite(guess_lang=false)
+  - codehilite
   - toc(permalink=true)
   - footnotes
   - pymdownx.arithmatex
