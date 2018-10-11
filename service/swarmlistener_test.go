@@ -106,19 +106,19 @@ func (s *SwarmListenerTestSuite) Test_Run_ServicesChannel() {
 
 	go func() {
 		s.SwarmListener.SSEventChan <- Event{
-			ID:       "serviceID1",
-			Type:     EventTypeCreate,
-			TimeNano: int64(1),
-			CheckCache: true,
+			ID:           "serviceID1",
+			Type:         EventTypeCreate,
+			TimeNano:     int64(1),
+			ConsultCache: true,
 		}
 	}()
 
 	go func() {
 		s.SwarmListener.SSEventChan <- Event{
-			ID:       "serviceID2",
-			Type:     EventTypeRemove,
-			TimeNano: int64(2),
-			CheckCache: true,
+			ID:           "serviceID2",
+			Type:         EventTypeRemove,
+			TimeNano:     int64(2),
+			ConsultCache: true,
 		}
 	}()
 
@@ -197,19 +197,19 @@ func (s *SwarmListenerTestSuite) Test_Run_NodeChannel() {
 
 	go func() {
 		s.SwarmListener.NodeEventChan <- Event{
-			ID:       "nodeID1",
-			Type:     EventTypeCreate,
-			TimeNano: int64(1),
-			CheckCache: true,
+			ID:           "nodeID1",
+			Type:         EventTypeCreate,
+			TimeNano:     int64(1),
+			ConsultCache: true,
 		}
 	}()
 
 	go func() {
 		s.SwarmListener.NodeEventChan <- Event{
-			ID:       "nodeID2",
-			Type:     EventTypeRemove,
-			TimeNano: int64(2),
-			CheckCache: true,
+			ID:           "nodeID2",
+			Type:         EventTypeRemove,
+			TimeNano:     int64(2),
+			ConsultCache: true,
 		}
 	}()
 
@@ -270,7 +270,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.SSEventChan:
-			s.True(e.CheckCache)
+			s.True(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -309,7 +309,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithoutCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.SSEventChan:
-			s.False(e.CheckCache)
+			s.False(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -345,7 +345,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithoutCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.NodeEventChan:
-			s.False(e.CheckCache)
+			s.False(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -381,7 +381,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.NodeEventChan:
-			s.True(e.CheckCache)
+			s.True(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -453,8 +453,7 @@ func (s *SwarmListenerTestSuite) Test_GetServices_WithoutNodeInfo_OneServiceNotR
 	s.Require().NotNil(event)
 	s.Equal(event.ID, "serviceID2")
 	s.Equal(event.Type, EventTypeCreate)
-	s.False(event.CheckCache)
-	s.True(event.InsertIntoCache)
+	s.False(event.ConsultCache)
 	s.SSClientMock.AssertExpectations(s.T())
 }
 

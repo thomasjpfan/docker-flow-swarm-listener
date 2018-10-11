@@ -17,8 +17,8 @@ import (
 // SwarmListening provides public api for interacting with swarm listener
 type SwarmListening interface {
 	Run()
-	NotifyServices(ignoreCache bool)
-	NotifyNodes(ignoreCache bool)
+	NotifyServices(consultCache bool)
+	NotifyNodes(consultCache bool)
 	GetServicesParameters(ctx context.Context) ([]map[string]string, error)
 	GetNodesParameters(ctx context.Context) ([]map[string]string, error)
 }
@@ -264,15 +264,13 @@ func (l *SwarmListener) processServiceEventCreate(event Event) {
 		}
 		ssm := MinifySwarmService(*service, l.IgnoreKey, l.IncludeKey)
 
-		if event.CheckCache || event.InsertIntoCache {
-			// Store in cache
-			isUpdated := l.SSCache.InsertAndCheck(ssm)
-			if !(isUpdated || event.InsertIntoCache) {
-				errChan <- nil
-				return
-			}
-			metrics.RecordService(l.SSCache.Len())
+		// Store in cache
+		isUpdated := l.SSCache.InsertAndCheck(ssm)
+		if event.ConsultCache && !isUpdated {
+			errChan <- nil
+			return
 		}
+		metrics.RecordService(l.SSCache.Len())
 
 		params := GetSwarmServiceMiniCreateParameters(ssm)
 		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
@@ -360,13 +358,11 @@ func (l *SwarmListener) processNodeEventCreate(event Event) {
 		}
 		nm := MinifyNode(node)
 
-		if event.CheckCache || event.InsertIntoCache {
-			// Store in cache
-			isUpdated := l.NodeCache.InsertAndCheck(nm)
-			if !(isUpdated || event.InsertIntoCache) {
-				errChan <- nil
-				return
-			}
+		// Store in cache
+		isUpdated := l.NodeCache.InsertAndCheck(nm)
+		if event.ConsultCache && !isUpdated {
+			errChan <- nil
+			return
 		}
 		params := GetNodeMiniCreateParameters(nm)
 		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
@@ -382,7 +378,7 @@ func (l *SwarmListener) processNodeEventCreate(event Event) {
 				}
 				return
 			}
-			l.NotifyServices(true)
+			l.NotifyServices(false)
 			return
 		case <-ctx.Done():
 			return
@@ -417,7 +413,7 @@ func (l *SwarmListener) processNodeEventRemove(event Event) {
 				return
 			}
 			l.NodeCache.Delete(event.ID)
-			l.NotifyServices(true)
+			l.NotifyServices(false)
 			return
 		case <-ctx.Done():
 			return
@@ -426,7 +422,7 @@ func (l *SwarmListener) processNodeEventRemove(event Event) {
 }
 
 // NotifyServices places all services on queue to notify services on service events
-func (l SwarmListener) NotifyServices(useCache bool) {
+func (l SwarmListener) NotifyServices(consultCache bool) {
 
 	if !l.NotifyDistributor.HasServiceListeners() {
 		return
@@ -441,13 +437,13 @@ func (l SwarmListener) NotifyServices(useCache bool) {
 	nowTimeNano := time.Now().UTC().UnixNano()
 	go func() {
 		for _, s := range services {
-			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, s.ID, nowTimeNano, useCache, false)
+			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, s.ID, nowTimeNano, consultCache)
 		}
 	}()
 }
 
 // NotifyNodes places all services on queue to notify serivces on node events
-func (l SwarmListener) NotifyNodes(useCache bool) {
+func (l SwarmListener) NotifyNodes(consultCache bool) {
 
 	if !l.NotifyDistributor.HasNodeListeners() {
 		return
@@ -462,7 +458,7 @@ func (l SwarmListener) NotifyNodes(useCache bool) {
 	nowTimeNano := time.Now().UTC().UnixNano()
 	go func() {
 		for _, n := range nodes {
-			l.placeOnEventChan(l.NodeEventChan, EventTypeCreate, n.ID, nowTimeNano, useCache, false)
+			l.placeOnEventChan(l.NodeEventChan, EventTypeCreate, n.ID, nowTimeNano, consultCache)
 		}
 	}()
 }
@@ -477,13 +473,12 @@ func (l SwarmListener) placeOnNotificationChan(notiChan chan<- Notification, eve
 	}
 }
 
-func (l SwarmListener) placeOnEventChan(eventChan chan<- Event, eventType EventType, ID string, timeNano int64, checkCache bool, insertIntoCache bool) {
+func (l SwarmListener) placeOnEventChan(eventChan chan<- Event, eventType EventType, ID string, timeNano int64, consultCache bool) {
 	eventChan <- Event{
-		Type:            eventType,
-		ID:              ID,
-		TimeNano:        timeNano,
-		CheckCache:      checkCache,
-		InsertIntoCache: insertIntoCache,
+		Type:         eventType,
+		ID:           ID,
+		TimeNano:     timeNano,
+		ConsultCache: consultCache,
 	}
 }
 
@@ -510,7 +505,7 @@ func (l SwarmListener) GetServicesParameters(ctx context.Context) ([]map[string]
 	go func() {
 		nowTimeNano := time.Now().UTC().UnixNano()
 		for _, ss := range notRunningServices {
-			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, ss.ID, nowTimeNano, false, true)
+			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, ss.ID, nowTimeNano, false)
 		}
 	}()
 

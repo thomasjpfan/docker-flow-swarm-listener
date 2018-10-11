@@ -67,7 +67,7 @@ func (n NodePoller) Run(eventChan chan<- Event) {
 						Type:     EventTypeCreate,
 						ID:       node.ID,
 						TimeNano: nowTimeNano,
-						CheckCache: true,
+						ConsultCache: true,
 					}
 				}
 			}
@@ -78,7 +78,7 @@ func (n NodePoller) Run(eventChan chan<- Event) {
 					Type:     EventTypeRemove,
 					ID:       k,
 					TimeNano: nowTimeNano,
-					CheckCache: true,
+					ConsultCache: true,
 				}
 			}
 		}

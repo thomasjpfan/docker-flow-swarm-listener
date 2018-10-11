@@ -86,11 +86,10 @@ const (
 
 // Event contains information about docker events
 type Event struct {
-	Type            EventType
-	ID              string
-	TimeNano        int64
-	CheckCache        bool
-	InsertIntoCache bool
+	Type         EventType
+	ID           string
+	TimeNano     int64
+	ConsultCache bool
 }
 
 // NodeIP defines a node/addr pair
