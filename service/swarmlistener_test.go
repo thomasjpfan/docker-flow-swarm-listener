@@ -109,7 +109,7 @@ func (s *SwarmListenerTestSuite) Test_Run_ServicesChannel() {
 			ID:       "serviceID1",
 			Type:     EventTypeCreate,
 			TimeNano: int64(1),
-			UseCache: true,
+			CheckCache: true,
 		}
 	}()
 
@@ -118,7 +118,7 @@ func (s *SwarmListenerTestSuite) Test_Run_ServicesChannel() {
 			ID:       "serviceID2",
 			Type:     EventTypeRemove,
 			TimeNano: int64(2),
-			UseCache: true,
+			CheckCache: true,
 		}
 	}()
 
@@ -200,7 +200,7 @@ func (s *SwarmListenerTestSuite) Test_Run_NodeChannel() {
 			ID:       "nodeID1",
 			Type:     EventTypeCreate,
 			TimeNano: int64(1),
-			UseCache: true,
+			CheckCache: true,
 		}
 	}()
 
@@ -209,7 +209,7 @@ func (s *SwarmListenerTestSuite) Test_Run_NodeChannel() {
 			ID:       "nodeID2",
 			Type:     EventTypeRemove,
 			TimeNano: int64(2),
-			UseCache: true,
+			CheckCache: true,
 		}
 	}()
 
@@ -270,7 +270,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.SSEventChan:
-			s.True(e.UseCache)
+			s.True(e.CheckCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -309,7 +309,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithoutCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.SSEventChan:
-			s.False(e.UseCache)
+			s.False(e.CheckCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -345,7 +345,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithoutCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.NodeEventChan:
-			s.False(e.UseCache)
+			s.False(e.CheckCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -381,7 +381,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithCache() {
 		}
 		select {
 		case e := <-s.SwarmListener.NodeEventChan:
-			s.True(e.UseCache)
+			s.True(e.CheckCache)
 			eventCnt++
 		case <-timeout:
 			s.Fail("Timeout")
@@ -403,12 +403,58 @@ func (s *SwarmListenerTestSuite) Test_GetServices_WithoutNodeInfo() {
 			swarm.Service{ID: "serviceID2"}, nil,
 		},
 	}
-	s.SSClientMock.On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx")).Return(expServices, nil)
+	s.SSClientMock.
+		On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx")).Return(expServices, nil).
+		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID1").Return(true, nil).
+		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID2").Return(true, nil)
 
 	params, err := s.SwarmListener.GetServicesParameters(context.Background())
 	s.Require().NoError(err)
 	s.Len(params, 2)
 
+	s.SSClientMock.AssertExpectations(s.T())
+}
+
+func (s *SwarmListenerTestSuite) Test_GetServices_WithoutNodeInfo_OneServiceNotRunning() {
+
+	expServices := []SwarmService{
+		{
+			swarm.Service{ID: "serviceID1"}, nil,
+		},
+		{
+			swarm.Service{ID: "serviceID2"}, nil,
+		},
+	}
+	s.SSClientMock.
+		On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx")).Return(expServices, nil).
+		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID1").Return(true, nil).
+		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID2").Return(false, nil)
+
+	params, err := s.SwarmListener.GetServicesParameters(context.Background())
+	s.Require().NoError(err)
+	s.Len(params, 1)
+
+	timeout := time.NewTimer(time.Second * 5).C
+
+	var event *Event
+
+	for {
+		if event != nil {
+			break
+		}
+		select {
+		case e := <-s.SwarmListener.SSEventChan:
+			event = &e
+		case <-timeout:
+			s.FailNow("Timeout")
+		}
+	}
+
+	s.Require().NotNil(event)
+	s.Equal(event.ID, "serviceID2")
+	s.Equal(event.Type, EventTypeCreate)
+	s.False(event.CheckCache)
+	s.True(event.InsertIntoCache)
 	s.SSClientMock.AssertExpectations(s.T())
 }
 
@@ -426,12 +472,12 @@ func (s *SwarmListenerTestSuite) Test_GetServices_WithNodeInfo() {
 	s2 := SwarmService{swarm.Service{ID: "serviceID2"}, nil}
 
 	expServices := []SwarmService{s1, s2}
-	s.SSClientMock.On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx")).
-		Return(expServices, nil).
-		On("GetNodeInfo", mock.AnythingOfType("*context.emptyCtx"), s1).
-		Return(s1NodeInfo, nil).
-		On("GetNodeInfo", mock.AnythingOfType("*context.emptyCtx"), s2).
-		Return(s2NodeInfo, nil)
+	s.SSClientMock.
+		On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx")).Return(expServices, nil).
+		On("GetNodeInfo", mock.AnythingOfType("*context.emptyCtx"), s1).Return(s1NodeInfo, nil).
+		On("GetNodeInfo", mock.AnythingOfType("*context.emptyCtx"), s2).Return(s2NodeInfo, nil).
+		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID1").Return(true, nil).
+		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID2").Return(true, nil)
 
 	params, err := s.SwarmListener.GetServicesParameters(context.Background())
 	s.Require().NoError(err)

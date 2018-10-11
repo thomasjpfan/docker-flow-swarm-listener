@@ -53,7 +53,7 @@ func (s NodeListener) ListenForNodeEvents(
 					Type:     eventType,
 					ID:       msg.Actor.ID,
 					TimeNano: msg.TimeNano,
-					UseCache: true,
+					CheckCache: true,
 				}
 			case err := <-msgErrs:
 				s.log.Printf("%v, Restarting docker event stream", err)

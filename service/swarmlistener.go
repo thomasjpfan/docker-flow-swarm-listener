@@ -264,10 +264,10 @@ func (l *SwarmListener) processServiceEventCreate(event Event) {
 		}
 		ssm := MinifySwarmService(*service, l.IgnoreKey, l.IncludeKey)
 
-		if event.UseCache {
+		if event.CheckCache || event.InsertIntoCache {
 			// Store in cache
 			isUpdated := l.SSCache.InsertAndCheck(ssm)
-			if !isUpdated {
+			if !(isUpdated || event.InsertIntoCache) {
 				errChan <- nil
 				return
 			}
@@ -360,10 +360,10 @@ func (l *SwarmListener) processNodeEventCreate(event Event) {
 		}
 		nm := MinifyNode(node)
 
-		if event.UseCache {
+		if event.CheckCache || event.InsertIntoCache {
 			// Store in cache
 			isUpdated := l.NodeCache.InsertAndCheck(nm)
-			if !isUpdated {
+			if !(isUpdated || event.InsertIntoCache) {
 				errChan <- nil
 				return
 			}
@@ -441,7 +441,7 @@ func (l SwarmListener) NotifyServices(useCache bool) {
 	nowTimeNano := time.Now().UTC().UnixNano()
 	go func() {
 		for _, s := range services {
-			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, s.ID, nowTimeNano, useCache)
+			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, s.ID, nowTimeNano, useCache, false)
 		}
 	}()
 }
@@ -462,7 +462,7 @@ func (l SwarmListener) NotifyNodes(useCache bool) {
 	nowTimeNano := time.Now().UTC().UnixNano()
 	go func() {
 		for _, n := range nodes {
-			l.placeOnEventChan(l.NodeEventChan, EventTypeCreate, n.ID, nowTimeNano, useCache)
+			l.placeOnEventChan(l.NodeEventChan, EventTypeCreate, n.ID, nowTimeNano, useCache, false)
 		}
 	}()
 }
@@ -477,12 +477,13 @@ func (l SwarmListener) placeOnNotificationChan(notiChan chan<- Notification, eve
 	}
 }
 
-func (l SwarmListener) placeOnEventChan(eventChan chan<- Event, eventType EventType, ID string, timeNano int64, useCache bool) {
+func (l SwarmListener) placeOnEventChan(eventChan chan<- Event, eventType EventType, ID string, timeNano int64, checkCache bool, insertIntoCache bool) {
 	eventChan <- Event{
-		Type:     eventType,
-		ID:       ID,
-		TimeNano: timeNano,
-		UseCache: useCache,
+		Type:            eventType,
+		ID:              ID,
+		TimeNano:        timeNano,
+		CheckCache:      checkCache,
+		InsertIntoCache: insertIntoCache,
 	}
 }
 
@@ -495,12 +496,30 @@ func (l SwarmListener) GetServicesParameters(ctx context.Context) ([]map[string]
 		return params, err
 	}
 
+	runningServices := []SwarmService{}
+	notRunningServices := []SwarmService{}
+	for _, ss := range services {
+		running, err := l.SSClient.SwarmServiceRunning(ctx, ss.ID)
+		if err != nil || !running {
+			notRunningServices = append(notRunningServices, ss)
+			continue
+		}
+		runningServices = append(runningServices, ss)
+	}
+
+	go func() {
+		nowTimeNano := time.Now().UTC().UnixNano()
+		for _, ss := range notRunningServices {
+			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, ss.ID, nowTimeNano, false, true)
+		}
+	}()
+
 	// concurrent
 	var wg sync.WaitGroup
 	paramsChan := make(chan map[string]string)
 	done := make(chan struct{})
 
-	for _, ss := range services {
+	for _, ss := range runningServices {
 		wg.Add(1)
 		go func(ss SwarmService) {
 			defer wg.Done()
