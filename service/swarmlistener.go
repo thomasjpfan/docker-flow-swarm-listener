@@ -682,9 +682,13 @@ func (l SwarmListener) GetServicesParameters(ctx context.Context) ([]map[string]
 		go func(ss SwarmService) {
 			defer wg.Done()
 			if l.IncludeNodeInfo {
-				if nodeInfo, err := l.SSClient.GetNodeInfo(ctx, ss); err == nil {
+				nodeInfo, err := l.SSClient.GetNodeInfo(ctx, ss)
+				if err != nil {
+					l.Log.Printf("ERROR: GetServicesParameters, %v", err)
+				} else {
 					ss.NodeInfo = nodeInfo
 				}
+
 			}
 			ssm := MinifySwarmService(ss, l.IgnoreKey, l.IncludeKey)
 			newParams := GetSwarmServiceMiniCreateParameters(ssm)
