@@ -126,6 +126,10 @@ func NewSwarmListenerFromEnv(
 	if err != nil {
 		includeNodeInfo = false
 	}
+	nodeIPInfoIncludesTaskAddress, err := strconv.ParseBool(os.Getenv("DF_NODE_IP_INFO_INCLUDES_TASK_ADDRESS"))
+	if err != nil {
+		nodeIPInfoIncludesTaskAddress = true
+	}
 	useDockerServiceEvents, err := strconv.ParseBool(os.Getenv("DF_USE_DOCKER_SERVICE_EVENTS"))
 	if err != nil {
 		useDockerServiceEvents = false
@@ -166,7 +170,7 @@ func NewSwarmListenerFromEnv(
 	var nodeStopEventChan chan struct{}
 
 	ssClient := NewSwarmServiceClient(
-		dockerClient, ignoreKey, "com.df.scrapeNetwork", serviceNamePrefix, logger)
+		dockerClient, ignoreKey, "com.df.scrapeNetwork", serviceNamePrefix, nodeIPInfoIncludesTaskAddress, logger)
 	nodeClient := NewNodeClient(dockerClient)
 
 	nodeInfraCreated := false
