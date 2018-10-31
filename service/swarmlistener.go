@@ -30,8 +30,9 @@ type SwarmListener struct {
 	SSCache    SwarmServiceCacher
 	SSPoller   SwarmServicePolling
 
-	SSEventChan        chan Event
-	SSNotificationChan chan Notification
+	SSEventChan         chan Event
+	SSNotificationChan  chan Notification
+	SSInternalEventChan chan Event
 
 	NodeListener NodeListening
 	NodeClient   NodeInspector
@@ -40,6 +41,7 @@ type SwarmListener struct {
 
 	NodeEventChan        chan Event
 	NodeNotificationChan chan Notification
+	NodeInteralEventChan chan Event
 
 	NotifyDistributor NotifyDistributing
 
@@ -63,6 +65,7 @@ func newSwarmListener(
 	ssCache SwarmServiceCacher,
 	ssPoller SwarmServicePolling,
 	ssEventChan chan Event,
+	ssInternalEventChan chan Event,
 	ssNotificationChan chan Notification,
 
 	nodeListener NodeListening,
@@ -71,6 +74,7 @@ func newSwarmListener(
 	nodePoller NodePolling,
 
 	nodeEventChan chan Event,
+	nodeInternalEventChan chan Event,
 	nodeNotificationChan chan Notification,
 
 	notifyDistributor NotifyDistributing,
@@ -94,12 +98,14 @@ func newSwarmListener(
 		SSCache:              ssCache,
 		SSPoller:             ssPoller,
 		SSEventChan:          ssEventChan,
+		SSInternalEventChan:  ssInternalEventChan,
 		SSNotificationChan:   ssNotificationChan,
 		NodeListener:         nodeListener,
 		NodeClient:           nodeClient,
 		NodeCache:            nodeCache,
 		NodePoller:           nodePoller,
 		NodeEventChan:        nodeEventChan,
+		NodeInteralEventChan: nodeInternalEventChan,
 		NodeNotificationChan: nodeNotificationChan,
 		NotifyDistributor:    notifyDistributor,
 		ServiceCancelManager: serviceCancelManager,
@@ -160,6 +166,7 @@ func NewSwarmListenerFromEnv(
 	var ssListener *SwarmServiceListener
 	var ssCache *SwarmServiceCache
 	var ssEventChan chan Event
+	var ssInternalEventChan chan Event
 	var ssNotificationChan chan Notification
 	var ssStopEventChan chan struct{}
 
@@ -167,6 +174,7 @@ func NewSwarmListenerFromEnv(
 	var nodeCache *NodeCache
 	var nodeEventChan chan Event
 	var nodeNotificationChan chan Notification
+	var nodeIntervalEventChan chan Event
 	var nodeStopEventChan chan struct{}
 
 	ssClient := NewSwarmServiceClient(
@@ -180,6 +188,7 @@ func NewSwarmListenerFromEnv(
 		ssCache = NewSwarmServiceCache()
 		ssEventChan = make(chan Event)
 		ssNotificationChan = make(chan Notification)
+		ssInternalEventChan = make(chan Event)
 		ssStopEventChan = make(chan struct{})
 
 		nodeInfraCreated = true
@@ -187,6 +196,7 @@ func NewSwarmListenerFromEnv(
 		nodeListener = NewNodeListener(dockerClient, logger)
 		nodeCache = NewNodeCache()
 		nodeEventChan = make(chan Event)
+		nodeIntervalEventChan = make(chan Event)
 		nodeStopEventChan = make(chan struct{})
 	}
 
@@ -197,6 +207,7 @@ func NewSwarmListenerFromEnv(
 			nodeListener = NewNodeListener(dockerClient, logger)
 			nodeCache = NewNodeCache()
 			nodeEventChan = make(chan Event)
+			nodeIntervalEventChan = make(chan Event)
 			nodeStopEventChan = make(chan struct{})
 		}
 	}
@@ -215,12 +226,14 @@ func NewSwarmListenerFromEnv(
 		ssCache,
 		ssPoller,
 		ssEventChan,
+		ssInternalEventChan,
 		ssNotificationChan,
 		nodeListener,
 		nodeClient,
 		nodeCache,
 		nodePoller,
 		nodeEventChan,
+		nodeIntervalEventChan,
 		nodeNotificationChan,
 		notifyDistributor,
 		NewCancelManager(),
@@ -244,7 +257,8 @@ func (l *SwarmListener) Run() {
 	nodeConnected := false
 
 	if l.NotifyDistributor.HasServiceListeners() {
-		l.connectServiceChannels()
+		l.connectServiceEventChannels()
+		l.connectInternalServiceChannels()
 
 		if l.UseDockerServiceEvents {
 			l.SSListener.ListenForServiceEvents(l.SSEventChan)
@@ -254,7 +268,8 @@ func (l *SwarmListener) Run() {
 		go l.SSPoller.Run(l.SSEventChan)
 
 		nodeConnected = true
-		l.connectNodeChannels()
+		l.connectNodeEventChannels()
+		l.connectInternalNodeChannels()
 
 		if l.UseDockerNodeEvents {
 			l.NodeListener.ListenForNodeEvents(l.NodeEventChan)
@@ -265,7 +280,8 @@ func (l *SwarmListener) Run() {
 	}
 
 	if l.HasNodeListeners && !nodeConnected {
-		l.connectNodeChannels()
+		l.connectNodeEventChannels()
+		l.connectInternalNodeChannels()
 
 		if l.UseDockerNodeEvents {
 			l.NodeListener.ListenForNodeEvents(l.NodeEventChan)
@@ -284,32 +300,55 @@ func (l *SwarmListener) stopEventChannels() {
 }
 
 func (l *SwarmListener) startEventChannels() {
-
-	nodeConnected := false
-	if l.NotifyDistributor.HasServiceListeners() {
-		l.connectServiceChannels()
-		nodeConnected = true
-		l.connectNodeChannels()
-	}
-
-	if l.HasNodeListeners && !nodeConnected {
-		l.connectNodeChannels()
-	}
+	l.connectServiceEventChannels()
+	l.connectNodeEventChannels()
 }
 
-func (l *SwarmListener) connectServiceChannels() {
-
+func (l *SwarmListener) connectServiceEventChannels() {
 	go func() {
 		for {
 			select {
 			case event := <-l.SSEventChan:
-				if event.Type == EventTypeCreate {
-					go l.processServiceEventCreate(event)
-				} else {
-					go l.processServiceEventRemove(event)
-				}
+				l.SSInternalEventChan <- event
 			case <-l.StopServiceEventChan:
 				return
+			}
+		}
+	}()
+}
+
+func (l *SwarmListener) connectNodeEventChannels() {
+	go func() {
+		for {
+			select {
+			case event := <-l.NodeEventChan:
+				l.NodeInteralEventChan <- event
+			case <-l.StopNodeEventChan:
+				return
+			}
+		}
+	}()
+}
+
+func (l *SwarmListener) connectInternalServiceChannels() {
+	go func() {
+		for event := range l.SSInternalEventChan {
+			if event.Type == EventTypeCreate {
+				go l.processServiceEventCreate(event)
+			} else {
+				go l.processServiceEventRemove(event)
+			}
+		}
+	}()
+}
+
+func (l *SwarmListener) connectInternalNodeChannels() {
+	go func() {
+		for event := range l.NodeInteralEventChan {
+			if event.Type == EventTypeCreate {
+				go l.processNodeEventCreate(event)
+			} else {
+				go l.processNodeEventRemove(event)
 			}
 		}
 	}()
@@ -400,24 +439,6 @@ func (l *SwarmListener) processServiceEventRemove(event Event) {
 	}
 }
 
-func (l *SwarmListener) connectNodeChannels() {
-
-	go func() {
-		for {
-			select {
-			case event := <-l.NodeEventChan:
-				if event.Type == EventTypeCreate {
-					go l.processNodeEventCreate(event)
-				} else {
-					go l.processNodeEventRemove(event)
-				}
-			case <-l.StopNodeEventChan:
-				return
-			}
-		}
-	}()
-}
-
 func (l *SwarmListener) processNodeEventCreate(event Event) {
 	ctx := l.NodeCancelManager.Add(context.Background(), event.ID, event.TimeNano)
 	defer l.NodeCancelManager.Delete(event.ID, event.TimeNano)
@@ -440,13 +461,13 @@ func (l *SwarmListener) processNodeEventCreate(event Event) {
 			return
 		}
 		go l.NotifyServices(false)
-		params := GetNodeMiniCreateParameters(nm)
-		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
-
 		if !l.HasNodeListeners {
 			errChan <- nil
 			return
 		}
+
+		params := GetNodeMiniCreateParameters(nm)
+		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
 		l.placeOnNotificationChan(l.NodeNotificationChan, event.Type, event.TimeNano, nm.ID, paramsEncoded, errChan)
 	}()
 
@@ -479,13 +500,12 @@ func (l *SwarmListener) processNodeEventRemove(event Event) {
 		}
 
 		go l.CompletelyNotifyServices()
-		params := GetNodeMiniRemoveParameters(nm)
-		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
-
 		if !l.HasNodeListeners {
 			errChan <- nil
 			return
 		}
+		params := GetNodeMiniRemoveParameters(nm)
+		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
 		l.placeOnNotificationChan(l.NodeNotificationChan, event.Type, event.TimeNano, nm.ID, paramsEncoded, errChan)
 	}()
 
@@ -522,7 +542,7 @@ func (l SwarmListener) NotifyServices(consultCache bool) {
 	nowTimeNano := time.Now().UTC().UnixNano()
 	go func() {
 		for _, s := range services {
-			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, s.ID, nowTimeNano, consultCache)
+			l.placeOnEventChan(l.SSInternalEventChan, EventTypeCreate, s.ID, nowTimeNano, consultCache)
 		}
 	}()
 }
@@ -543,7 +563,7 @@ func (l SwarmListener) NotifyNodes(consultCache bool) {
 	nowTimeNano := time.Now().UTC().UnixNano()
 	go func() {
 		for _, n := range nodes {
-			l.placeOnEventChan(l.NodeEventChan, EventTypeCreate, n.ID, nowTimeNano, consultCache)
+			l.placeOnEventChan(l.NodeInteralEventChan, EventTypeCreate, n.ID, nowTimeNano, consultCache)
 		}
 	}()
 }
@@ -594,38 +614,31 @@ func (l *SwarmListener) CompletelyNotifyServices() {
 		return
 	}
 
-	runningServices := []SwarmService{}
-	notRunningServices := []SwarmService{}
-	for _, ss := range services {
-		running, err := l.SSClient.SwarmServiceRunning(ctx, ss.ID)
-		if err != nil || !running {
-			notRunningServices = append(notRunningServices, ss)
-			continue
-		}
-		runningServices = append(runningServices, ss)
-	}
-
 	errChan := make(chan error)
 	nowTimeNano := time.Now().UTC().UnixNano()
 
-	for _, notRunningSS := range notRunningServices {
-		ssm := MinifySwarmService(notRunningSS, l.IgnoreKey, l.IncludeKey)
-		params := GetSwarmServiceMiniRemoveParameters(ssm)
-		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
-		go func(params string, ID string) {
-			l.placeOnNotificationChan(
-				l.SSNotificationChan, EventTypeRemove, nowTimeNano, ID, params, errChan)
-		}(paramsEncoded, ssm.ID)
-		go func(ID string) {
-			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, ID, nowTimeNano, false)
-		}(ssm.ID)
-	}
+	for _, ss := range services {
+		running, err := l.SSClient.SwarmServiceRunning(ctx, ss.ID)
 
-	for _, runningSS := range runningServices {
-		ssm := MinifySwarmService(runningSS, l.IgnoreKey, l.IncludeKey)
+		// Not Running
+		if err != nil || !running {
+			ssm := MinifySwarmService(ss, l.IgnoreKey, l.IncludeKey)
+			params := GetSwarmServiceMiniRemoveParameters(ssm)
+			paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
+			go func(params string, ID string) {
+				l.placeOnNotificationChan(
+					l.SSNotificationChan, EventTypeRemove, nowTimeNano, ID, params, errChan)
+				l.placeOnEventChan(l.SSInternalEventChan, EventTypeCreate, ID, nowTimeNano, false)
+			}(paramsEncoded, ssm.ID)
+			continue
+		}
+
+		// Running
+		ssm := MinifySwarmService(ss, l.IgnoreKey, l.IncludeKey)
 		l.SSCache.InsertAndCheck(ssm)
 		params := GetSwarmServiceMiniCreateParameters(ssm)
 		paramsEncoded := ConvertMapStringStringToURLValues(params).Encode()
+
 		go func(params string, ID string) {
 			l.placeOnNotificationChan(
 				l.SSNotificationChan, EventTypeCreate, nowTimeNano, ID, params, errChan)
@@ -655,22 +668,17 @@ func (l SwarmListener) GetServicesParameters(ctx context.Context) ([]map[string]
 	}
 
 	runningServices := []SwarmService{}
-	notRunningServices := []SwarmService{}
+	nowTimeNano := time.Now().UTC().UnixNano()
 	for _, ss := range services {
 		running, err := l.SSClient.SwarmServiceRunning(ctx, ss.ID)
 		if err != nil || !running {
-			notRunningServices = append(notRunningServices, ss)
+			go func(ssID string) {
+				l.placeOnEventChan(l.SSInternalEventChan, EventTypeCreate, ssID, nowTimeNano, false)
+			}(ss.ID)
 			continue
 		}
 		runningServices = append(runningServices, ss)
 	}
-
-	go func() {
-		nowTimeNano := time.Now().UTC().UnixNano()
-		for _, ss := range notRunningServices {
-			l.placeOnEventChan(l.SSEventChan, EventTypeCreate, ss.ID, nowTimeNano, false)
-		}
-	}()
 
 	// concurrent
 	var wg sync.WaitGroup

@@ -58,11 +58,13 @@ func (s *SwarmListenerTestSuite) SetupTest() {
 		s.SSCacheMock,
 		s.SSPollerMock,
 		make(chan Event),
+		make(chan Event),
 		make(chan Notification),
 		s.NodeListeningMock,
 		s.NodeClientMock,
 		s.NodeCacheMock,
 		s.NodePollerMock,
+		make(chan Event),
 		make(chan Event),
 		make(chan Notification),
 		s.NotifyDistributorMock,
@@ -274,7 +276,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithCache() {
 			break
 		}
 		select {
-		case e := <-s.SwarmListener.SSEventChan:
+		case e := <-s.SwarmListener.SSInternalEventChan:
 			s.True(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
@@ -313,7 +315,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithoutCache() {
 			break
 		}
 		select {
-		case e := <-s.SwarmListener.SSEventChan:
+		case e := <-s.SwarmListener.SSInternalEventChan:
 			s.False(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
@@ -349,7 +351,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithoutCache() {
 			break
 		}
 		select {
-		case e := <-s.SwarmListener.NodeEventChan:
+		case e := <-s.SwarmListener.NodeInteralEventChan:
 			s.False(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
@@ -385,7 +387,7 @@ func (s *SwarmListenerTestSuite) Test_NotifyNodes_WithCache() {
 			break
 		}
 		select {
-		case e := <-s.SwarmListener.NodeEventChan:
+		case e := <-s.SwarmListener.NodeInteralEventChan:
 			s.True(e.ConsultCache)
 			eventCnt++
 		case <-timeout:
@@ -448,7 +450,7 @@ func (s *SwarmListenerTestSuite) Test_GetServices_WithoutNodeInfo_OneServiceNotR
 			break
 		}
 		select {
-		case e := <-s.SwarmListener.SSEventChan:
+		case e := <-s.SwarmListener.SSInternalEventChan:
 			event = &e
 		case <-timeout:
 			s.FailNow("Timeout")
