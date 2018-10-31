@@ -259,9 +259,7 @@ func NewSwarmListenerFromEnv(
 // Run starts swarm listener
 func (l *SwarmListener) Run() {
 
-	nodeConnected := false
-
-	if l.NotifyDistributor.HasServiceListeners() {
+	if l.HasServiceListeners {
 		l.connectServiceEventChannels()
 		l.connectInternalServiceChannels()
 
@@ -271,20 +269,9 @@ func (l *SwarmListener) Run() {
 		}
 
 		go l.SSPoller.Run(l.SSEventChan)
-
-		nodeConnected = true
-		l.connectNodeEventChannels()
-		l.connectInternalNodeChannels()
-
-		if l.UseDockerNodeEvents {
-			l.NodeListener.ListenForNodeEvents(l.NodeEventChan)
-			l.Log.Printf("Listening to Docker Node Events")
-		}
-
-		go l.NodePoller.Run(l.NodeEventChan)
 	}
 
-	if l.HasNodeListeners && !nodeConnected {
+	if l.HasServiceListeners || l.HasNodeListeners {
 		l.connectNodeEventChannels()
 		l.connectInternalNodeChannels()
 
@@ -300,27 +287,20 @@ func (l *SwarmListener) Run() {
 }
 
 func (l *SwarmListener) stopEventChannels() {
-	nodeStopped := false
 	if l.HasServiceListeners {
-		nodeStopped = true
 		l.StopServiceEventChan <- struct{}{}
-		l.StopNodeEventChan <- struct{}{}
 	}
 
-	if l.HasNodeListeners && !nodeStopped {
+	if l.HasServiceListeners || l.HasNodeListeners {
 		l.StopNodeEventChan <- struct{}{}
 	}
 }
 
 func (l *SwarmListener) startEventChannels() {
-	nodeStarted := false
 	if l.HasServiceListeners {
-		nodeStarted = true
 		l.connectServiceEventChannels()
-		l.connectNodeEventChannels()
 	}
-
-	if l.HasNodeListeners && !nodeStarted {
+	if l.HasServiceListeners || l.HasNodeListeners {
 		l.connectNodeEventChannels()
 	}
 }

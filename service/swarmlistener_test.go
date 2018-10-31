@@ -105,7 +105,6 @@ func (s *SwarmListenerTestSuite) Test_Run_ServicesChannel() {
 		On("Get", "serviceID2").Return(ss2m, true).
 		On("Len").Return(2)
 	s.NotifyDistributorMock.
-		On("HasServiceListeners").Return(true).
 		On("Run", mock.AnythingOfType("<-chan service.Notification"), mock.AnythingOfType("<-chan service.Notification"))
 	s.SSPollerMock.
 		On("Run", mock.AnythingOfType("chan<- service.Event"))
@@ -196,7 +195,6 @@ func (s *SwarmListenerTestSuite) Test_Run_NodeChannel() {
 	s.NodeCacheMock.On("InsertAndCheck", n1m).Return(true).
 		On("Get", "nodeID2").Return(n2m, true)
 	s.NotifyDistributorMock.
-		On("HasServiceListeners").Return(false).
 		On("Run", mock.AnythingOfType("<-chan service.Notification"), mock.AnythingOfType("<-chan service.Notification"))
 	s.NodePollerMock.
 		On("Run", mock.AnythingOfType("chan<- service.Event"))
