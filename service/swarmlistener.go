@@ -52,6 +52,7 @@ type SwarmListener struct {
 	UseDockerNodeEvents    bool
 	IgnoreKey              string
 	IncludeKey             string
+	HasServiceListeners    bool
 	HasNodeListeners       bool
 	Log                    *log.Logger
 
@@ -86,6 +87,7 @@ func newSwarmListener(
 	useDockerNodeEvents bool,
 	ignoreKey string,
 	includeKey string,
+	hasServiceListeners bool,
 	hasNodeListeners bool,
 	logger *log.Logger,
 	stopServiceEventChan chan struct{},
@@ -116,6 +118,7 @@ func newSwarmListener(
 		UseDockerNodeEvents:    useDockerNodeEvents,
 		IgnoreKey:              ignoreKey,
 		IncludeKey:             includeKey,
+		HasServiceListeners:    hasServiceListeners,
 		HasNodeListeners:       hasNodeListeners,
 		Log:                    logger,
 		StopServiceEventChan:   stopServiceEventChan,
@@ -183,7 +186,8 @@ func NewSwarmListenerFromEnv(
 
 	nodeInfraCreated := false
 
-	if notifyDistributor.HasServiceListeners() {
+	hasServiceListeners := notifyDistributor.HasServiceListeners()
+	if hasServiceListeners {
 		ssListener = NewSwarmServiceListener(dockerClient, logger)
 		ssCache = NewSwarmServiceCache()
 		ssEventChan = make(chan Event)
@@ -243,6 +247,7 @@ func NewSwarmListenerFromEnv(
 		useDockerNodeEvents,
 		ignoreKey,
 		"com.docker.stack.namespace",
+		hasServiceListeners,
 		hasNodeListeners,
 		logger,
 		ssStopEventChan,
@@ -295,13 +300,29 @@ func (l *SwarmListener) Run() {
 }
 
 func (l *SwarmListener) stopEventChannels() {
-	l.StopServiceEventChan <- struct{}{}
-	l.StopNodeEventChan <- struct{}{}
+	nodeStopped := false
+	if l.HasServiceListeners {
+		nodeStopped = true
+		l.StopServiceEventChan <- struct{}{}
+		l.StopNodeEventChan <- struct{}{}
+	}
+
+	if l.HasNodeListeners && !nodeStopped {
+		l.StopNodeEventChan <- struct{}{}
+	}
 }
 
 func (l *SwarmListener) startEventChannels() {
-	l.connectServiceEventChannels()
-	l.connectNodeEventChannels()
+	nodeStarted := false
+	if l.HasServiceListeners {
+		nodeStarted = true
+		l.connectServiceEventChannels()
+		l.connectNodeEventChannels()
+	}
+
+	if l.HasNodeListeners && !nodeStarted {
+		l.connectNodeEventChannels()
+	}
 }
 
 func (l *SwarmListener) connectServiceEventChannels() {
@@ -529,9 +550,12 @@ func (l *SwarmListener) processNodeEventRemove(event Event) {
 // NotifyServices places all services on queue to notify services on service events
 func (l SwarmListener) NotifyServices(consultCache bool) {
 
-	if !l.NotifyDistributor.HasServiceListeners() {
+	if !l.HasServiceListeners {
 		return
 	}
+
+	l.stopEventChannels()
+	defer l.startEventChannels()
 
 	services, err := l.SSClient.SwarmServiceList(context.Background())
 	if err != nil {
@@ -595,7 +619,7 @@ func (l *SwarmListener) CompletelyNotifyServices() {
 
 	l.Log.Printf("CompletelyNotifyServices triggered")
 
-	if !l.NotifyDistributor.HasServiceListeners() {
+	if !l.HasServiceListeners {
 		return
 	}
 
@@ -603,7 +627,6 @@ func (l *SwarmListener) CompletelyNotifyServices() {
 	defer l.startEventChannels()
 
 	ctx := context.Background()
-
 	services, err := l.SSClient.SwarmServiceList(ctx)
 	if err != nil {
 		l.Log.Printf("ERROR: CompletelyNotifyServices, %v", err)
@@ -662,23 +685,29 @@ func (l *SwarmListener) CompletelyNotifyServices() {
 func (l SwarmListener) GetServicesParameters(ctx context.Context) ([]map[string]string, error) {
 	params := []map[string]string{}
 
+	l.stopEventChannels()
 	services, err := l.SSClient.SwarmServiceList(ctx)
 	if err != nil {
+		l.startEventChannels()
 		return params, err
 	}
 
 	runningServices := []SwarmService{}
 	nowTimeNano := time.Now().UTC().UnixNano()
+
 	for _, ss := range services {
-		running, err := l.SSClient.SwarmServiceRunning(ctx, ss.ID)
-		if err != nil || !running {
-			go func(ssID string) {
-				l.placeOnEventChan(l.SSInternalEventChan, EventTypeCreate, ssID, nowTimeNano, false)
-			}(ss.ID)
-			continue
+		if l.HasServiceListeners {
+			running, err := l.SSClient.SwarmServiceRunning(ctx, ss.ID)
+			if err != nil || !running {
+				go func(ssID string) {
+					l.placeOnEventChan(l.SSInternalEventChan, EventTypeCreate, ssID, nowTimeNano, false)
+				}(ss.ID)
+				continue
+			}
 		}
 		runningServices = append(runningServices, ss)
 	}
+	l.startEventChannels()
 
 	// concurrent
 	var wg sync.WaitGroup

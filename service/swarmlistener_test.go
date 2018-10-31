@@ -76,6 +76,7 @@ func (s *SwarmListenerTestSuite) SetupTest() {
 		"com.df.notify",
 		"com.docker.stack.namespace",
 		false,
+		false,
 		s.Logger,
 		make(chan struct{}),
 		make(chan struct{}),
@@ -109,6 +110,7 @@ func (s *SwarmListenerTestSuite) Test_Run_ServicesChannel() {
 	s.SSPollerMock.
 		On("Run", mock.AnythingOfType("chan<- service.Event"))
 
+	s.SwarmListener.HasServiceListeners = true
 	s.SwarmListener.Run()
 
 	go func() {
@@ -263,8 +265,10 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithCache() {
 		},
 	}
 	s.SSClientMock.On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx")).Return(expServices, nil)
-	s.NotifyDistributorMock.On("HasServiceListeners").Return(true)
 
+	s.SwarmListener.HasServiceListeners = true
+	s.SwarmListener.connectServiceEventChannels()
+	s.SwarmListener.connectNodeEventChannels()
 	s.SwarmListener.NotifyServices(true)
 
 	timeout := time.NewTimer(time.Second * 5).C
@@ -302,8 +306,10 @@ func (s *SwarmListenerTestSuite) Test_NotifyServices_WithoutCache() {
 		},
 	}
 	s.SSClientMock.On("SwarmServiceList", mock.AnythingOfType("*context.emptyCtx")).Return(expServices, nil)
-	s.NotifyDistributorMock.On("HasServiceListeners").Return(true)
 
+	s.SwarmListener.HasServiceListeners = true
+	s.SwarmListener.connectServiceEventChannels()
+	s.SwarmListener.connectNodeEventChannels()
 	s.SwarmListener.NotifyServices(false)
 
 	timeout := time.NewTimer(time.Second * 5).C
@@ -415,6 +421,10 @@ func (s *SwarmListenerTestSuite) Test_GetServices_WithoutNodeInfo() {
 		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID1").Return(true, nil).
 		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID2").Return(true, nil)
 
+	s.SwarmListener.connectServiceEventChannels()
+	s.SwarmListener.connectNodeEventChannels()
+	s.SwarmListener.HasServiceListeners = true
+
 	params, err := s.SwarmListener.GetServicesParameters(context.Background())
 	s.Require().NoError(err)
 	s.Len(params, 2)
@@ -437,6 +447,9 @@ func (s *SwarmListenerTestSuite) Test_GetServices_WithoutNodeInfo_OneServiceNotR
 		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID1").Return(true, nil).
 		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID2").Return(false, nil)
 
+	s.SwarmListener.connectServiceEventChannels()
+	s.SwarmListener.connectNodeEventChannels()
+	s.SwarmListener.HasServiceListeners = true
 	params, err := s.SwarmListener.GetServicesParameters(context.Background())
 	s.Require().NoError(err)
 	s.Len(params, 1)
@@ -485,6 +498,9 @@ func (s *SwarmListenerTestSuite) Test_GetServices_WithNodeInfo() {
 		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID1").Return(true, nil).
 		On("SwarmServiceRunning", mock.AnythingOfType("*context.emptyCtx"), "serviceID2").Return(true, nil)
 
+	s.SwarmListener.connectServiceEventChannels()
+	s.SwarmListener.connectNodeEventChannels()
+	s.SwarmListener.HasServiceListeners = true
 	params, err := s.SwarmListener.GetServicesParameters(context.Background())
 	s.Require().NoError(err)
 	s.Len(params, 2)
