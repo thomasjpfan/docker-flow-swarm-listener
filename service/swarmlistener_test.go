@@ -91,14 +91,17 @@ func (s *SwarmListenerTestSuite) Test_Run_ServicesChannel() {
 
 	receivedBothNotifications := make(chan struct{})
 	ss1 := SwarmService{swarm.Service{ID: "serviceID1",
-		Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "serviceName1"}}}, s1NodeInfo}
+		Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "serviceName1"}}}, nil}
 
 	ss1m := SwarmServiceMini{ID: "serviceID1", Name: "serviceName1", Labels: map[string]string{}, NodeInfo: s1NodeInfo}
 	ss2m := SwarmServiceMini{ID: "serviceID2", Name: "serviceName2", Labels: map[string]string{}}
 
 	s.SSListenerMock.On("ListenForServiceEvents", mock.AnythingOfType("chan<- service.Event"))
 	s.NodeListeningMock.On("ListenForNodeEvents", mock.AnythingOfType("chan<- service.Event"))
-	s.SSClientMock.On("SwarmServiceInspect", mock.AnythingOfType("*context.cancelCtx"), "serviceID1", true).Return(&ss1, nil)
+	s.SSClientMock.
+		On("SwarmServiceInspect", mock.AnythingOfType("*context.cancelCtx"), "serviceID1").Return(&ss1, nil).
+		On("GetNodeInfo", mock.AnythingOfType("*context.cancelCtx"), ss1).Return(s1NodeInfo, nil)
+
 	s.NodePollerMock.
 		On("Run", mock.AnythingOfType("chan<- service.Event"))
 	s.SSCacheMock.On("InsertAndCheck", ss1m).Return(true).

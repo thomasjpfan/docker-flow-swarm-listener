@@ -362,7 +362,7 @@ func (l *SwarmListener) processServiceEventCreate(event Event) {
 	errChan := make(chan error)
 
 	go func() {
-		service, err := l.SSClient.SwarmServiceInspect(ctx, event.ID, l.IncludeNodeInfo)
+		service, err := l.SSClient.SwarmServiceInspect(ctx, event.ID)
 		if err != nil {
 			errChan <- err
 			return
@@ -372,6 +372,17 @@ func (l *SwarmListener) processServiceEventCreate(event Event) {
 			errChan <- nil
 			return
 		}
+
+		// Wait for service to converge
+		nodeInfo, err := l.SSClient.GetNodeInfo(ctx, *service)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		if l.IncludeNodeInfo {
+			service.NodeInfo = nodeInfo
+		}
+
 		ssm := MinifySwarmService(*service, l.IgnoreKey, l.IncludeKey)
 
 		// Store in cache
